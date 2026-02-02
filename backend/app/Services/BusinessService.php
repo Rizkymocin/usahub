@@ -21,6 +21,11 @@ class BusinessService
         return $this->repository->getAll($tenantId);
     }
 
+    public function getBusinessesForUser(\App\Models\User $user): Collection
+    {
+        return $user->businesses()->withCount('accounts')->get();
+    }
+
     public function getBusiness(int $id, int $tenantId): ?Business
     {
         return $this->repository->findById($id, $tenantId);

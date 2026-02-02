@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import axios from "@/lib/axios"
+import { useAuthUser } from "@/stores/auth.selectors"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,7 @@ const getCategoryLabel = (category: string) => {
 }
 
 export default function UsahaPage() {
+    const user = useAuthUser()
     const [businesses, setBusinesses] = useState<Business[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -164,61 +166,63 @@ export default function UsahaPage() {
                     <p className="text-muted-foreground mt-1">Kelola data usaha anda disini</p>
                 </div>
 
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Plus className="mr-2 h-4 w-4" /> Tambah Usaha
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Tambah Usaha Baru</DialogTitle>
-                            <DialogDescription>
-                                Masukkan detail usaha baru anda. Pastikan paket berlangganan anda mencukupi.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nama Usaha</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="Contoh: Cafe Kenangan"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Kategori</Label>
-                                <Select value={newCategory} onValueChange={setNewCategory}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih Kategori" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="isp">Internet Service Provider</SelectItem>
-                                        <SelectItem value="atk">Alat Tulis Kantor</SelectItem>
-                                        <SelectItem value="cafe">Cafe & Coffee Shop</SelectItem>
-                                        <SelectItem value="food">Restaurant & Food</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Alamat (Opsional)</Label>
-                                <Textarea
-                                    id="address"
-                                    placeholder="Alamat lengkap usaha..."
-                                    value={newAddress}
-                                    onChange={(e) => setNewAddress(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                            <Button onClick={handleAddBusiness} disabled={isSubmitting}>
-                                {isSubmitting ? "Menyimpan..." : "Simpan"}
+                {user?.role === 'owner' && (
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="mr-2 h-4 w-4" /> Tambah Usaha
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tambah Usaha Baru</DialogTitle>
+                                <DialogDescription>
+                                    Masukkan detail usaha baru anda. Pastikan paket berlangganan anda mencukupi.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nama Usaha</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="Contoh: Cafe Kenangan"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Kategori</Label>
+                                    <Select value={newCategory} onValueChange={setNewCategory}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih Kategori" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="isp">Internet Service Provider</SelectItem>
+                                            <SelectItem value="atk">Alat Tulis Kantor</SelectItem>
+                                            <SelectItem value="cafe">Cafe & Coffee Shop</SelectItem>
+                                            <SelectItem value="food">Restaurant & Food</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Alamat (Opsional)</Label>
+                                    <Textarea
+                                        id="address"
+                                        placeholder="Alamat lengkap usaha..."
+                                        value={newAddress}
+                                        onChange={(e) => setNewAddress(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
+                                <Button onClick={handleAddBusiness} disabled={isSubmitting}>
+                                    {isSubmitting ? "Menyimpan..." : "Simpan"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
 
                 {/* Edit Dialog */}
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

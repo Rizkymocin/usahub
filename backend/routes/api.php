@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('plans', PlanController::class);
     Route::apiResource('tenants', \App\Http\Controllers\TenantController::class);
     Route::apiResource('businesses', \App\Http\Controllers\BusinessController::class);
+    Route::get('/business-by-admin', [\App\Http\Controllers\BusinessController::class, 'getBusinessesByAdmin']);
 
     // Account Routes
     Route::get('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'index']);

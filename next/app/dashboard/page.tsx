@@ -32,10 +32,10 @@ export default function DashboardPage() {
 
                 if (roleNames.includes('owner')) {
                     setRole('owner')
-                } else if (roleNames.includes('super-admin')) {
-                    setRole('super-admin')
-                } else if (roleNames.includes('business-admin')) { // Assuming this role exists
-                    setRole('business-admin')
+                } else if (roleNames.includes('super_admin')) {
+                    setRole('super_admin')
+                } else if (roleNames.includes('business_admin')) { // Assuming this role exists
+                    setRole('business_admin')
                 } else {
                     setRole('guest')
                 }
@@ -54,11 +54,11 @@ export default function DashboardPage() {
         return <OwnerDashboard />
     }
 
-    if (role === 'super-admin') {
+    if (role === 'super_admin') {
         return <SuperAdminDashboard />
     }
 
-    if (role === 'business-admin') {
+    if (role === 'business_admin') {
         return <BusinessAdminDashboard />
     }
 

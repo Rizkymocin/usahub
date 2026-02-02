@@ -19,19 +19,37 @@ class BusinessController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
+        $user = $request->user();
+        $tenant = $user->tenant;
 
-        if (!$tenant) {
+        // If user is Owner (has tenant), list all businesses for that tenant
+        if ($tenant) {
+            $businesses = $this->service->listBusinesses($tenant->id);
             return response()->json([
-                'success' => false,
-                'message' => 'User does not have a tenant',
-            ], 404);
+                'success' => true,
+                'message' => 'Businesses retrieved successfully',
+                'data'    => $businesses
+            ]);
         }
 
-        $businesses = $this->service->listBusinesses($tenant->id);
+        // If user is not Owner (Business Admin / Employee), list assigned businesses
+        $businesses = $this->service->getBusinessesForUser($user);
+
         return response()->json([
             'success' => true,
-            'message' => 'Businesses retrieved successfully',
+            'message' => 'Assigned businesses retrieved successfully',
+            'data'    => $businesses
+        ]);
+    }
+
+    public function getBusinessesByAdmin(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $businesses = $this->service->getBusinessesForUser($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assigned businesses retrieved successfully',
             'data'    => $businesses
         ]);
     }
@@ -55,12 +73,18 @@ class BusinessController extends Controller
 
     public function show(Request $request, string $public_id): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-        if (!$tenant) {
-            return response()->json(['success' => false, 'message' => 'User does not have a tenant'], 404);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
         }
 
-        $business = $this->service->getBusinessByPublicId($public_id, $tenant->id);
+        $business = $this->service->getBusinessByPublicId($public_id, $tenantId);
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
@@ -86,12 +110,18 @@ class BusinessController extends Controller
 
     public function users(Request $request, string $business_public_id): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-        if (!$tenant) {
-            return response()->json(['success' => false, 'message' => 'User does not have a tenant'], 404);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
         }
 
-        $users = $this->service->getBusinessUsers($business_public_id, $tenant->id);
+        $users = $this->service->getBusinessUsers($business_public_id, $tenantId);
         if (!$users) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
@@ -100,9 +130,15 @@ class BusinessController extends Controller
 
     public function storeUser(Request $request, string $business_public_id): JsonResponse
     {
-        $tenant = $request->user()->tenant;
-        if (!$tenant) {
-            return response()->json(['success' => false, 'message' => 'User does not have a tenant'], 404);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
         }
 
         $validated = $request->validate([
@@ -112,7 +148,7 @@ class BusinessController extends Controller
         ]);
 
         try {
-            $user = $this->service->createBusinessUser($validated, $business_public_id, $tenant->id);
+            $user = $this->service->createBusinessUser($validated, $business_public_id, $tenantId);
             return response()->json([
                 'success' => true,
                 'message' => 'User added successfully',

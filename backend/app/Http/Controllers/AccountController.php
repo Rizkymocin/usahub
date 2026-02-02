@@ -22,8 +22,15 @@ class AccountController extends Controller
 
     public function index(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $request->user()->tenant->id;
-        $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        $business = null;
+        if ($tenantId) {
+            $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        } else {
+            $business = $user->businesses()->where('businesses.public_id', $businessPublicId)->first();
+        }
 
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
@@ -42,8 +49,19 @@ class AccountController extends Controller
 
     public function store(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $request->user()->tenant->id;
-        $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        $business = null;
+        if ($tenantId) {
+            $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        } else {
+            $business = $user->businesses()->where('public_id', $businessPublicId)->first();
+        }
+
+        if ($business && !$tenantId) {
+            $tenantId = $business->tenant_id;
+        }
 
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
@@ -78,8 +96,19 @@ class AccountController extends Controller
 
     public function destroy(Request $request, string $businessPublicId, int $id): JsonResponse
     {
-        $tenantId = $request->user()->tenant->id;
-        $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        $business = null;
+        if ($tenantId) {
+            $business = $this->businessService->repository->findByIdPublicId($businessPublicId, $tenantId);
+        } else {
+            $business = $user->businesses()->where('public_id', $businessPublicId)->first();
+        }
+
+        if ($business && !$tenantId) {
+            $tenantId = $business->tenant_id;
+        }
 
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);

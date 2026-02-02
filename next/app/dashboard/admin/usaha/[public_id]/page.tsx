@@ -5,8 +5,16 @@ import axios from "@/lib/axios"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import User from "./User"
-import Accounts from "./Accounts"
+// import User from "./User" // Need to locate correct path or duplicate these components if they rely on specific path params/context
+import Accounts from "./Accounts" // Reusing components from sibling
+import User from "./User" // Reusing components from sibling
+
+// We need to check if these components (Accounts, User, etc.) use `useParams()`.
+// If they do, they expect `public_id`. Since our route is `[public_id]`, it should work fine.
+// BUT, if they rely on other context, we might need to adjust.
+// Accounts.tsx in sibling uses `useParams().public_id`. That matches.
+// User.tsx in sibling uses `useParams().public_id`. That matches.
+
 import {
     Dialog,
     DialogContent,
@@ -28,12 +36,13 @@ import {
 import { toast } from "sonner"
 import { ArrowLeft, Plus, FolderTree, Trash2 } from "lucide-react"
 import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/business.selectors"
-import Outlets from "./Outlets"
-import Resellers from "./Resellers"
-import Topups from "./Topups"
-import Vouchers from "./Vouchers"
+import Outlets from "../../../usaha/[public_id]/Outlets"
+import Resellers from "../../../usaha/[public_id]/Resellers"
+import Topups from "../../../usaha/[public_id]/Topups"
+import Vouchers from "../../../usaha/[public_id]/Vouchers"
 
-export default function DetailUsahaPage() {
+
+export default function DetailUsahaAdminPage() {
     const { public_id } = useParams()
     const router = useRouter()
     const businessName = useBusinessName()
@@ -50,7 +59,7 @@ export default function DetailUsahaPage() {
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/usaha')}>
+                <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/admin/usaha')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>

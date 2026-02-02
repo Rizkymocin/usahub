@@ -50,23 +50,23 @@ export default function LandingPage() {
                         </div>
                         <div className="flex items-center space-x-4">
                             {isAuthenticated ? (
-                                <Link href="/dashboard">
-                                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                                    <Link href="/dashboard">
                                         Ke Dashboard
-                                    </Button>
-                                </Link>
+                                    </Link>
+                                </Button>
                             ) : (
                                 <>
-                                    <Link href="/auth/login">
-                                        <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
+                                    <Button variant="ghost" className="text-gray-600 hover:text-gray-900" asChild>
+                                        <Link href="/auth/login">
                                             Masuk
-                                        </Button>
-                                    </Link>
-                                    <Link href="/auth/register">
-                                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                        </Link>
+                                    </Button>
+                                    <Button className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                                        <Link href="/auth/register">
                                             Daftar Sekarang
-                                        </Button>
-                                    </Link>
+                                        </Link>
+                                    </Button>
                                 </>
                             )}
                         </div>
@@ -88,17 +88,17 @@ export default function LandingPage() {
                             </p>
                             <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                                 <div className="space-y-4 sm:space-y-0 sm:flex sm:space-x-4">
-                                    <Link href="/auth/register">
-                                        <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
+                                    <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg" asChild>
+                                        <Link href="/auth/register">
                                             Mulai Sekarang
                                             <ArrowRight className="ml-2 h-5 w-5" />
-                                        </Button>
-                                    </Link>
-                                    <Link href="#features">
-                                        <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 py-3 text-lg">
+                                        </Link>
+                                    </Button>
+                                    <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 py-3 text-lg" asChild>
+                                        <Link href="#features">
                                             Lihat Demo
-                                        </Button>
-                                    </Link>
+                                        </Link>
+                                    </Button>
                                 </div>
                                 <p className="mt-3 text-sm text-gray-500">
                                     Gratis · Tanpa Kartu Kredit · Berhenti Kapan Saja
@@ -207,11 +207,11 @@ export default function LandingPage() {
                                     Analitik Dasar
                                 </li>
                             </ul>
-                            <Link href="/auth/register?plan=free" className="mt-8">
-                                <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">
+                            <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100" asChild>
+                                <Link href="/auth/register?plan=free" className="mt-8">
                                     Mulai Sekarang
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
 
                         {/* Starter Plan */}
@@ -243,11 +243,11 @@ export default function LandingPage() {
                                     Dukungan Prioritas
                                 </li>
                             </ul>
-                            <Link href="/auth/register?plan=starter" className="mt-8">
-                                <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">
+                            <Button className="w-full bg-blue-600 text-white hover:bg-blue-700" asChild>
+                                <Link href="/auth/register?plan=starter" className="mt-8">
                                     Mulai Sekarang
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
 
                         {/* Growth Plan */}
@@ -276,11 +276,11 @@ export default function LandingPage() {
                                     Dukungan Prioritas 24/7
                                 </li>
                             </ul>
-                            <Link href="/auth/register?plan=growth" className="mt-8">
-                                <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100">
+                            <Button className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100" asChild>
+                                <Link href="/auth/register?plan=growth" className="mt-8">
                                     Mulai Sekarang
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -295,11 +295,11 @@ export default function LandingPage() {
                     </h2>
                     <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
                         <div className="inline-flex rounded-md shadow">
-                            <Link href="/auth/register">
-                                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 text-lg px-8 py-3">
+                            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 text-lg px-8 py-3" asChild>
+                                <Link href="/auth/register">
                                     Mulai Sekarang
-                                </Button>
-                            </Link>
+                                </Link>
+                            </Button>
                         </div>
                     </div>
                 </div>

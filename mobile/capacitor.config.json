@@ -1,0 +1,10 @@
+{
+  "appId": "com.usahub.app",
+  "appName": "UsaHub Mobile",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}

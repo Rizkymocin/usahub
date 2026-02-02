@@ -80,6 +80,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
+      {
+        title: "Administrasi Usaha",
+        url: "#",
+        icon: Database,
+        roles: ["business_admin"],
+        items: [
+          {
+            title: "Usaha",
+            url: "/dashboard/admin/usaha",
+          },
+          {
+            title: "Pengguna",
+            url: "/dashboard/admin/pengguna",
+          },
+        ],
+      },
       // Reports
       {
         title: "Ringkasan Eksekutif",
