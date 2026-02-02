@@ -13,6 +13,10 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
+        // Set team context to null to create global roles
+        // Roles can still be scoped to businesses when assigned to users
+        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId(null);
+
         Role::create(['name' => 'superadmin']);
         Role::create(['name' => 'owner']);
         Role::create(['name' => 'business_admin']);

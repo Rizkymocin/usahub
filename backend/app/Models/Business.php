@@ -22,8 +22,27 @@ class Business extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $hidden = [
+        'tenant_id',
+        'id'
+    ];
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function accounts()
+    {
+        return $this->hasMany(Account::class);
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'business_users'
+        )->withPivot(['tenant_id', 'is_active', 'joined_at'])
+            ->withTimestamps();
     }
 }

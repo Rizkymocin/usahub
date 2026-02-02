@@ -11,6 +11,7 @@ class ResellerPayment extends Model
 
     protected $fillable = [
         'tenant_id',
+        'business_id',
         'outlet_id',
         'reseller_invoice_id',
         'amount',
@@ -26,6 +27,11 @@ class ResellerPayment extends Model
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function business()
+    {
+        return $this->belongsTo(Business::class);
     }
 
     public function outlet()
