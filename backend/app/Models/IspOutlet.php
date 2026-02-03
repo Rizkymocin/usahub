@@ -30,6 +30,13 @@ class IspOutlet extends Model
         'status' => 'boolean',
     ];
 
+    protected $hidden = [
+        'id',
+        'tenant_id',
+        'business_id',
+        'user_id',
+    ];
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);

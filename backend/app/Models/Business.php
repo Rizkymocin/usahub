@@ -45,4 +45,14 @@ class Business extends Model
         )->withPivot(['tenant_id', 'is_active', 'joined_at'])
             ->withTimestamps();
     }
+
+    public function outlets()
+    {
+        return $this->hasMany(IspOutlet::class);
+    }
+
+    public function resellers()
+    {
+        return $this->hasManyThrough(IspReseller::class, IspOutlet::class, 'business_id', 'outlet_id');
+    }
 }

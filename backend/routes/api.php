@@ -9,10 +9,12 @@ Route::get('/user', function (Request $request) {
 
 use App\Http\Controllers\ResellerPaymentController;
 use App\Http\Controllers\PlanController;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\OutletPinLoginController;
 
 Route::post('/register-tenant', [AuthController::class, 'registerTenant']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/outlet/login', [OutletPinLoginController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -24,8 +26,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Account Routes
     Route::get('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'index']);
-    Route::get('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'users']);
-    Route::post('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'storeUser']);
     Route::post('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'store']);
     Route::delete('/businesses/{public_id}/accounts/{id}', [\App\Http\Controllers\AccountController::class, 'destroy']);
+
+    // User Routes
+    Route::post('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'storeUser']);
+    Route::get('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'users']);
+
+    // Outlet Routes
+    Route::get('/businesses/{public_id}/outlets', [\App\Http\Controllers\BusinessController::class, 'outlets']);
+    Route::post('/businesses/{public_id}/outlets', [\App\Http\Controllers\BusinessController::class, 'storeOutlet']);
+    Route::put('/businesses/{public_id}/outlets/{outlet_public_id}', [\App\Http\Controllers\BusinessController::class, 'updateOutlet']);
+    Route::delete('/businesses/{public_id}/outlets/{outlet_public_id}', [\App\Http\Controllers\BusinessController::class, 'destroyOutlet']);
+
+    // Reseller Routes
+    Route::get('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'resellers']);
+    Route::post('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'storeReseller']);
+    Route::put('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'updateReseller']);
+    Route::delete('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'destroyReseller']);
+});
+
+Route::middleware(['auth:sanctum', 'role:isp_outlet'])->group(function () {
+    // endpoint outlet
 });

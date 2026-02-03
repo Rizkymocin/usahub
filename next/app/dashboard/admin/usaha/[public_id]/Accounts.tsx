@@ -190,94 +190,99 @@ export default function Accounts() {
         }
     }
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Daftar Akun</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Kelola struktur akun keuangan usaha anda (Chart of Accounts).
-                    </p>
-                </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Tambah Sub-Akun
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Tambah Sub-Akun Baru</DialogTitle>
-                            <DialogDescription>
-                                Tambahkan akun baru di bawah akun induk yang sudah ada.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="parent">Akun Induk</Label>
-                                <Select value={parentId} onValueChange={setParentId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih Akun Induk" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {accounts.map((acc) => (
-                                            <SelectItem key={acc.id} value={acc.id.toString()}>
-                                                {acc.code} - {acc.name} ({acc.type})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nama Akun</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="Contoh: Bank BCA"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="code">Kode Akun</Label>
-                                <Input
-                                    id="code"
-                                    placeholder="Contoh: 1001"
-                                    value={newCode}
-                                    onChange={(e) => setNewCode(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                            <Button onClick={handleAddAccount} disabled={isSubmitting}>
-                                {isSubmitting ? "Menyimpan..." : "Simpan"}
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex justify-between items-center w-full">
+                    <div>
+                        <h2 className="text-xl font-semibold tracking-tight">Daftar Akun</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Kelola struktur akun keuangan usaha anda (Chart of Accounts).
+                        </p>
+                    </div>
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Tambah Sub-Akun
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <FolderTree className="h-5 w-5" /> Struktur Akun
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="py-8 text-center text-muted-foreground">Loading accounts...</div>
-                    ) : accounts.length === 0 ? (
-                        <div className="py-8 text-center text-muted-foreground">Belum ada akun.</div>
-                    ) : (
-                        <div className="space-y-1">
-                            <div className="space-y-4">
-                                {accountTree.map((node) => (
-                                    <AccountItem key={node.id} node={node} onDelete={handleDeleteAccount} />
-                                ))}
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tambah Sub-Akun Baru</DialogTitle>
+                                <DialogDescription>
+                                    Tambahkan akun baru di bawah akun induk yang sudah ada.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="parent">Akun Induk</Label>
+                                    <Select value={parentId} onValueChange={setParentId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih Akun Induk" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {accounts.map((acc) => (
+                                                <SelectItem key={acc.id} value={acc.id.toString()}>
+                                                    {acc.code} - {acc.name} ({acc.type})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nama Akun</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="Contoh: Bank BCA"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="code">Kode Akun</Label>
+                                    <Input
+                                        id="code"
+                                        placeholder="Contoh: 1001"
+                                        value={newCode}
+                                        onChange={(e) => setNewCode(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
+                                <Button onClick={handleAddAccount} disabled={isSubmitting}>
+                                    {isSubmitting ? "Menyimpan..." : "Simpan"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FolderTree className="h-5 w-5" /> Struktur Akun
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {isLoading ? (
+                                <div className="py-8 text-center text-muted-foreground">Loading accounts...</div>
+                            ) : accounts.length === 0 ? (
+                                <div className="py-8 text-center text-muted-foreground">Belum ada akun.</div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <div className="space-y-4">
+                                        {accountTree.map((node) => (
+                                            <AccountItem key={node.id} node={node} onDelete={handleDeleteAccount} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </CardContent>
+        </Card>
     )
 }

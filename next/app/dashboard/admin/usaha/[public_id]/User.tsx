@@ -33,6 +33,7 @@ const formatRole = (role: string | undefined) => {
 
 // User interface is now imported from store or inferred
 import { User } from "@/stores/business-user.store"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function UserPage() {
     const { public_id } = useParams()
@@ -112,128 +113,133 @@ export default function UserPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Daftar Pengguna</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Kelola pengguna yang terdaftar pada usaha anda.
-                    </p>
-                </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Tambah Pengguna Baru
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Tambah Pengguna Baru</DialogTitle>
-                            <DialogDescription>
-                                Tambahkan pengguna baru pada usaha anda.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nama Pengguna</Label>
-                                <Input
-                                    id="name"
-                                    placeholder="Contoh: John Doe"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    placeholder="Contoh: john@example.com"
-                                    value={newEmail}
-                                    onChange={(e) => setNewEmail(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="role">Peran</Label>
-                                <Select value={newRole} onValueChange={setNewRole}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih Peran" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableRoles.map((role) => (
-                                            <SelectItem key={role.value} value={role.value}>
-                                                {role.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {newRole && (
-                                    <div className="text-sm text-muted-foreground mt-2 p-2 bg-muted rounded border border-border">
-                                        Password default untuk role ini adalah <strong>
-                                            {newRole === 'kasir' ? 'kasir123' :
-                                                newRole === 'business_admin' ? 'admin123' :
-                                                    newRole === 'isp_outlet' ? 'outlet123' :
-                                                        newRole === 'isp_teknisi' ? 'teknisi123' :
-                                                            'password123'}
-                                        </strong>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                            <Button onClick={handleAddUser} disabled={isSubmitting}>
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Menyimpan...
-                                    </>
-                                ) : (
-                                    "Simpan"
-                                )}
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex justify-between items-center w-full">
+                    <div>
+                        <h2 className="text-xl font-semibold tracking-tight">Daftar Pengguna</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Kelola pengguna yang terdaftar pada usaha anda.
+                        </p>
+                    </div>
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Tambah Pengguna Baru
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            <div className="border rounded-md">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Nama</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Peran</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tambah Pengguna Baru</DialogTitle>
+                                <DialogDescription>
+                                    Tambahkan pengguna baru pada usaha anda.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nama Pengguna</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="Contoh: John Doe"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input
+                                        id="email"
+                                        placeholder="Contoh: john@example.com"
+                                        value={newEmail}
+                                        onChange={(e) => setNewEmail(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">Peran</Label>
+                                    <Select value={newRole} onValueChange={setNewRole}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih Peran" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableRoles.map((role) => (
+                                                <SelectItem key={role.value} value={role.value}>
+                                                    {role.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {newRole && (
+                                        <div className="text-sm text-muted-foreground mt-2 p-2 bg-muted rounded border border-border">
+                                            Password default untuk role ini adalah <strong>
+                                                {newRole === 'kasir' ? 'kasir123' :
+                                                    newRole === 'business_admin' ? 'admin123' :
+                                                        newRole === 'isp_outlet' ? 'outlet123' :
+                                                            newRole === 'isp_teknisi' ? 'teknisi123' :
+                                                                'password123'}
+                                            </strong>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
+                                <Button onClick={handleAddUser} disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        "Simpan"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Card>
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={3} className="h-24 text-center">
-                                    Loading...
-                                </TableCell>
+                                <TableHead>Nama</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Peran</TableHead>
                             </TableRow>
-                        ) : users.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={3} className="h-24 text-center">
-                                    Belum ada pengguna.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            users.map((user) => (
-                                <TableRow key={user.email}>
-                                    <TableCell className="font-medium">{user.name}</TableCell>
-                                    <TableCell>{user.email}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="secondary" className="font-normal">
-                                            {formatRole(user.role)}
-                                        </Badge>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        Loading...
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
+                            ) : users.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        Belum ada pengguna.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                users.map((user) => (
+                                    <TableRow key={user.email}>
+                                        <TableCell className="font-medium">{user.name}</TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className="font-normal">
+                                                {formatRole(user.role)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </Card>
+            </CardContent>
+
+
+        </Card>
     )
 }

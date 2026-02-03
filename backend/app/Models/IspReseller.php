@@ -28,6 +28,12 @@ class IspReseller extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $hidden = [
+        'id',
+        'tenant_id',
+        'outlet_id',
+    ];
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);

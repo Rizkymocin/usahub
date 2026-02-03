@@ -162,6 +162,241 @@ class BusinessController extends Controller
         }
     }
 
+    public function outlets(Request $request, string $business_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $outlets = $this->service->getBusinessOutlets($business_public_id, $tenantId);
+        if (!$outlets) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+        return response()->json(['success' => true, 'message' => 'Business outlets retrieved successfully', 'data' => $outlets]);
+    }
+
+    public function storeOutlet(Request $request, string $business_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
+            'role' => 'nullable|string'
+        ]);
+
+        try {
+            $outlet = $this->service->createBusinessOutlet($validated, $business_public_id, $tenantId);
+            return response()->json([
+                'success' => true,
+                'message' => 'Outlet added successfully',
+                'data' => $outlet
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function updateOutlet(Request $request, string $business_public_id, string $outlet_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $validated = $request->validate([
+            'name' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
+            'status' => 'nullable|boolean'
+        ]);
+
+        try {
+            $updated = $this->service->updateBusinessOutlet($business_public_id, $outlet_public_id, $tenantId, $validated);
+            if (!$updated) {
+                return response()->json(['success' => false, 'message' => 'Outlet not found or update failed'], 404);
+            }
+            return response()->json(['success' => true, 'message' => 'Outlet updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function destroyOutlet(Request $request, string $business_public_id, string $outlet_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        try {
+            $deleted = $this->service->deleteBusinessOutlet($business_public_id, $outlet_public_id, $tenantId);
+            if (!$deleted) {
+                return response()->json(['success' => false, 'message' => 'Outlet not found or deletion failed'], 404);
+            }
+            return response()->json(['success' => true, 'message' => 'Outlet deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function resellers(Request $request, string $business_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $resellers = $this->service->getBusinessResellers($business_public_id, $tenantId);
+        if (!$resellers) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+        return response()->json(['success' => true, 'message' => 'Business resellers retrieved successfully', 'data' => $resellers]);
+    }
+
+    public function storeReseller(Request $request, string $business_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $validated = $request->validate([
+            'outlet_id' => 'sometimes|exists:isp_outlets,id', // Keep for backward compatibility if needed, or remove? Better remove to force usage of public_id? Or allow both?
+            'outlet_public_id' => 'required_without:outlet_id|exists:isp_outlets,public_id',
+            'name' => 'required|string',
+            'phone' => 'required|string',
+            'address' => 'nullable|string',
+        ]);
+
+        try {
+            $reseller = $this->service->createBusinessReseller($validated, $business_public_id, $tenantId);
+            return response()->json([
+                'success' => true,
+                'message' => 'Reseller added successfully',
+                'data' => $reseller
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function updateReseller(Request $request, string $business_public_id, string $reseller_code): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        $validated = $request->validate([
+            'is_active' => 'boolean',
+            'name' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
+            'outlet_public_id' => 'nullable|exists:isp_outlets,public_id',
+        ]);
+
+        try {
+            $updated = $this->service->updateBusinessReseller($business_public_id, $reseller_code, $tenantId, $validated);
+            if (!$updated) {
+                return response()->json(['success' => false, 'message' => 'Reseller not found or update failed'], 404);
+            }
+            return response()->json(['success' => true, 'message' => 'Reseller updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function destroyReseller(Request $request, string $business_public_id, string $reseller_code): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user->tenant?->id;
+
+        if (!$tenantId) {
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+            if (!$business) {
+                return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+            }
+            $tenantId = $business->tenant_id;
+        }
+
+        try {
+            $deleted = $this->service->deleteBusinessReseller($business_public_id, $reseller_code, $tenantId);
+            if (!$deleted) {
+                return response()->json(['success' => false, 'message' => 'Reseller not found or deletion failed'], 404);
+            }
+            return response()->json(['success' => true, 'message' => 'Reseller deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
     public function destroy(Request $request, int $id): JsonResponse
     {
         $deleted = $this->service->deleteBusiness($id, $request->tenant_id);

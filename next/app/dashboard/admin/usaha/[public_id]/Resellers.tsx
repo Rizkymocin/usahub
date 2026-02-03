@@ -1,72 +1,482 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useParams } from "next/navigation"
-import axios from "@/lib/axios"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+import {
+    useReactTable,
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+    ColumnDef,
+    flexRender,
+    SortingState,
+    ColumnFiltersState,
+    VisibilityState,
+} from "@tanstack/react-table"
+import { useResellerStore, Reseller } from "@/stores/reseller.store"
+import { useOutletStore } from "@/stores/outlet.store"
 
 export default function Resellers() {
     const { public_id } = useParams()
-    const [resellers, setResellers] = useState([])
-    const [isLoading, setIsLoading] = useState(true)
 
-    // TODO: Add Dialog for creating reseller
+    // Store Hooks
+    const { resellers, isLoading: isResellersLoading, fetchResellers, addReseller, updateReseller, deleteReseller } = useResellerStore()
+    const { outlets, fetchOutlets } = useOutletStore()
+
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false)
+    const [resellerToSwitch, setResellerToSwitch] = useState<Reseller | null>(null)
+    const [switchOutletId, setSwitchOutletId] = useState("")
+
+    // Form State
+    const [name, setName] = useState("")
+    const [selectedOutlet, setSelectedOutlet] = useState("")
+    const [phone, setPhone] = useState("")
+    const [address, setAddress] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // Table State
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [globalFilter, setGlobalFilter] = useState("")
+    const [pagination, setPagination] = useState({
+        pageIndex: 0,
+        pageSize: 5,
+    })
 
     useEffect(() => {
-        if (public_id) fetchResellers()
-    }, [public_id])
+        if (public_id) {
+            const id = Array.isArray(public_id) ? public_id[0] : public_id
+            fetchResellers(id)
+            fetchOutlets(id)
+        }
+    }, [public_id, fetchResellers, fetchOutlets])
 
-    const fetchResellers = async () => {
+    const handleSubmit = async () => {
+        if (!selectedOutlet) {
+            toast.error("Pilih outlet terlebih dahulu")
+            return
+        }
+        if (!name || !phone) {
+            toast.error("Nama dan Telepon wajib diisi")
+            return
+        }
+        setIsSubmitting(true)
         try {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
-            const res = await axios.get(`/api/businesses/${id}/resellers`)
-            setResellers(res.data.data)
-        } catch (error) {
+            if (!id) return
+            await addReseller(id, {
+                outlet_public_id: selectedOutlet,
+                name,
+                phone,
+                address
+            })
+            toast.success("Reseller berhasil ditambahkan")
+            setIsDialogOpen(false)
+            // Reset form
+            setName("")
+            setPhone("")
+            setAddress("")
+            setSelectedOutlet("")
+        } catch (error: any) {
             console.error(error)
+            // Error is handled in store but toast here for specific context if needed, 
+            // though store likely sets error state. We can use store error or just toast here.
+            // keeping it simple with toast here as per original, although store intercepts error.
+            // The store throws error, so we catch it here.
         } finally {
-            setIsLoading(false)
+            setIsSubmitting(false)
         }
     }
+
+    const handleToggleStatus = async (reseller: Reseller) => {
+        // Prevent toggling if public_id is missing (though it shouldn't be)
+        if (!public_id) return
+
+        const businessId = Array.isArray(public_id) ? public_id[0] : public_id
+
+        try {
+            await updateReseller(businessId, reseller.code, {
+                is_active: !reseller.is_active
+            })
+            toast.success(reseller.is_active ? "Reseller dinonaktifkan" : "Reseller diaktifkan")
+        } catch (error: any) {
+            // Error handled
+        }
+    }
+
+    const handleDelete = async (reseller: Reseller) => {
+        if (!confirm("Apakah anda yakin ingin menghapus data reseller ini?")) return
+
+        if (!public_id) return
+        const businessId = Array.isArray(public_id) ? public_id[0] : public_id
+
+        try {
+            await deleteReseller(businessId, reseller.code)
+            toast.success("Reseller berhasil dihapus")
+        } catch (error: any) {
+            // Error handled
+        }
+    }
+
+    const handleSwitchOutletSubmit = async () => {
+        if (!resellerToSwitch || !switchOutletId) {
+            toast.error("Pilih outlet tujuan terlebih dahulu")
+            return
+        }
+
+        if (!public_id) return
+        const businessId = Array.isArray(public_id) ? public_id[0] : public_id
+
+        setIsSubmitting(true)
+        try {
+            await updateReseller(businessId, resellerToSwitch.code, {
+                outlet_public_id: switchOutletId
+            })
+            toast.success("Outlet berhasil dipindah")
+            setIsSwitchOutletOpen(false)
+            setResellerToSwitch(null)
+            setSwitchOutletId("")
+        } catch (error: any) {
+            // Error handled by store/toast
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const columns: ColumnDef<Reseller>[] = useMemo(() => [
+        {
+            accessorKey: "name",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="p-0 hover:bg-transparent"
+                    >
+                        Nama
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                )
+            },
+            cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        },
+        {
+            accessorKey: "code",
+            header: "Kode",
+            cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("code")}</div>,
+        },
+        {
+            accessorKey: "outlet.name",
+            header: "Outlet",
+            cell: ({ row }) => <div>{row.original.outlet?.name || "-"}</div>,
+        },
+        {
+            accessorKey: "phone",
+            header: "Telepon",
+            cell: ({ row }) => <div className="text-muted-foreground">{row.getValue("phone")}</div>,
+        },
+        {
+            accessorKey: "is_active",
+            header: "Status",
+            cell: ({ row }) => {
+                const status = row.getValue("is_active")
+                return (
+                    <Badge variant={status ? "default" : "destructive"}>
+                        {status ? 'Aktif' : 'Nonaktif'}
+                    </Badge>
+                )
+            },
+            filterFn: (row, id, value) => {
+                if (value === "all") return true
+                return value === "active" ? !!row.getValue(id) : !row.getValue(id)
+            }
+        },
+        {
+            id: "actions",
+            enableHiding: false,
+            cell: ({ row }) => {
+                const item = row.original
+
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(item)} className="cursor-pointer">
+                                <Power className="mr-2 h-4 w-4" />
+                                {item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => {
+                                setResellerToSwitch(item)
+                                // We don't have outlet_id in the interface, so we start with empty or try to find it if available in future
+                                setSwitchOutletId("")
+                                setIsSwitchOutletOpen(true)
+                            }} className="cursor-pointer">
+                                <ArrowLeftRight className="mr-2 h-4 w-4" />
+                                Pindah Outlet
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(item)} className="cursor-pointer text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Reseller
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )
+            },
+        },
+    ], [])
+
+    const table = useReactTable({
+        data: resellers,
+        columns,
+        onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        onGlobalFilterChange: setGlobalFilter,
+        state: {
+            sorting,
+            columnFilters,
+            globalFilter,
+            pagination,
+        },
+        onPaginationChange: setPagination,
+    })
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Daftar Reseller</CardTitle>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Tambah Reseller
-                </Button>
+                <div className="flex flex-row items-center justify-between w-full">
+                    <div>
+                        <h2 className="text-xl font-semibold tracking-tight">Daftar Reseller</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Kelola reseller yang terdaftar pada usaha anda.
+                        </p>
+                    </div>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Tambah Reseller
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Tambah Reseller Baru</DialogTitle>
+                                <DialogDescription>
+                                    Masukkan detail reseller baru untuk mulai mengelola transaksi.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="outlet">Outlet</Label>
+                                    <Select
+                                        value={selectedOutlet}
+                                        onValueChange={setSelectedOutlet}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih Outlet" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {outlets.map((outlet) => (
+                                                <SelectItem key={outlet.public_id} value={outlet.public_id}>
+                                                    {outlet.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nama Reseller</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="Contoh: Reseller A"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone">Telepon</Label>
+                                        <Input
+                                            id="phone"
+                                            placeholder="0812..."
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="address">Alamat</Label>
+                                        <Input
+                                            id="address"
+                                            placeholder="Jl. Merdeka No. 1"
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+                                    Batal
+                                </Button>
+                                <Button onClick={handleSubmit} disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        "Simpan"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isSwitchOutletOpen} onOpenChange={setIsSwitchOutletOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Pindah Outlet</DialogTitle>
+                                <DialogDescription>
+                                    Pindahkan reseller <b>{resellerToSwitch?.name}</b> ke outlet lain.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="switch-outlet">Outlet Tujuan</Label>
+                                    <Select
+                                        value={switchOutletId}
+                                        onValueChange={setSwitchOutletId}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih Outlet Tujuan" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {outlets.map((outlet) => (
+                                                <SelectItem key={outlet.public_id} value={outlet.public_id}>
+                                                    {outlet.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsSwitchOutletOpen(false)} disabled={isSubmitting}>
+                                    Batal
+                                </Button>
+                                <Button onClick={handleSwitchOutletSubmit} disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        "Simpan"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </CardHeader>
             <CardContent>
-                {isLoading ? (
-                    <div>Loading...</div>
+                <div className="flex items-center py-4 gap-2">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari reseller..."
+                            value={globalFilter ?? ""}
+                            onChange={(event) => setGlobalFilter(event.target.value)}
+                            className="pl-8"
+                        />
+                    </div>
+                    <Select
+                        value={(table.getColumn("is_active")?.getFilterValue() as string) ?? "all"}
+                        onValueChange={(value) => table.getColumn("is_active")?.setFilterValue(value)}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Status</SelectItem>
+                            <SelectItem value="active">Aktif</SelectItem>
+                            <SelectItem value="inactive">Nonaktif</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {isResellersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
                 ) : (
                     <div className="rounded-md border">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-muted/50">
-                                <tr>
-                                    <th className="p-3">Nama</th>
-                                    <th className="p-3">Kode</th>
-                                    <th className="p-3">Telepon</th>
-                                    <th className="p-3">Outlet</th>
-                                    <th className="p-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {resellers.map((item: any) => (
-                                    <tr key={item.id} className="border-t">
-                                        <td className="p-3 font-medium">{item.name}</td>
-                                        <td className="p-3">{item.code}</td>
-                                        <td className="p-3">{item.phone}</td>
-                                        <td className="p-3">{item.outlet?.name}</td>
-                                        <td className="p-3">{item.is_active ? 'Aktif' : 'Nonaktif'}</td>
+                            <thead className="bg-muted/50 border-b">
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <tr key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => {
+                                            return (
+                                                <th key={header.id} className="p-4 font-semibold text-muted-foreground">
+                                                    {header.isPlaceholder
+                                                        ? null
+                                                        : flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                </th>
+                                            )
+                                        })}
                                     </tr>
                                 ))}
-                                {resellers.length === 0 && (
+                            </thead>
+                            <tbody>
+                                {table.getRowModel().rows?.length ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <tr
+                                            key={row.id}
+                                            data-state={row.getIsSelected() && "selected"}
+                                            className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                                        >
+                                            {row.getVisibleCells().map((cell) => (
+                                                <td key={cell.id} className="p-4">
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                ) : (
                                     <tr>
-                                        <td colSpan={5} className="p-4 text-center text-muted-foreground">
-                                            Belum ada data reseller
+                                        <td colSpan={columns.length} className="h-24 text-center">
+                                            Tidak ada hasil.
                                         </td>
                                     </tr>
                                 )}
@@ -74,6 +484,29 @@ export default function Resellers() {
                         </table>
                     </div>
                 )}
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Sebelumnya
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Selanjutnya
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
             </CardContent>
         </Card>
     )

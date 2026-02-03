@@ -36,10 +36,10 @@ import {
 import { toast } from "sonner"
 import { ArrowLeft, Plus, FolderTree, Trash2 } from "lucide-react"
 import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/business.selectors"
-import Outlets from "../../../usaha/[public_id]/Outlets"
-import Resellers from "../../../usaha/[public_id]/Resellers"
-import Topups from "../../../usaha/[public_id]/Topups"
-import Vouchers from "../../../usaha/[public_id]/Vouchers"
+import Outlets from "./Outlets"
+import Resellers from "./Resellers"
+import Topups from "./Topups"
+import Vouchers from "./Vouchers"
 
 
 export default function DetailUsahaAdminPage() {
@@ -69,19 +69,17 @@ export default function DetailUsahaAdminPage() {
             </div>
 
             <Tabs defaultValue="account" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="account">Manajemen Akun (COA)</TabsTrigger>
-                    <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
+                <TabsList className="w-full bg-primary text-primary-foreground">
+                    <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="account">Akun (COA)</TabsTrigger>
+                    <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="users">Pengguna</TabsTrigger>
                     {business?.category === 'isp' && (
                         <>
-                            <TabsTrigger value="outlets">Outlet</TabsTrigger>
-                            <TabsTrigger value="resellers">Reseller</TabsTrigger>
-                            <TabsTrigger value="topups">Topup</TabsTrigger>
-                            <TabsTrigger value="vouchers">Voucher</TabsTrigger>
+                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>
+                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>
+                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="topups">Deposit</TabsTrigger>
+                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="vouchers">Voucher</TabsTrigger>
                         </>
                     )}
-                    <TabsTrigger value="transaction" disabled>Transaksi (Coming Soon)</TabsTrigger>
-                    <TabsTrigger value="report" disabled>Laporan (Coming Soon)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">

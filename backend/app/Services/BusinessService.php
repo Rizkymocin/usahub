@@ -3,6 +3,10 @@
 namespace App\Services;
 
 use App\Repositories\BusinessRepository;
+use App\Repositories\UserRepository;
+use App\Repositories\TenantRepository;
+use App\Repositories\AccountRepository;
+use App\Repositories\IspResellerRepository;
 use App\Models\Business;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
@@ -10,10 +14,26 @@ use Illuminate\Support\Str;
 class BusinessService
 {
     public $repository;
+    public $userRepository;
+    public $tenantRepository;
+    public $accountRepository;
+    public $ispOutletService;
+    public $ispResellerRepository;
 
-    public function __construct(BusinessRepository $repository)
-    {
+    public function __construct(
+        BusinessRepository $repository,
+        UserRepository $userRepository,
+        TenantRepository $tenantRepository,
+        AccountRepository $accountRepository,
+        IspOutletService $ispOutletService,
+        IspResellerRepository $ispResellerRepository
+    ) {
         $this->repository = $repository;
+        $this->userRepository = $userRepository;
+        $this->tenantRepository = $tenantRepository;
+        $this->accountRepository = $accountRepository;
+        $this->ispOutletService = $ispOutletService;
+        $this->ispResellerRepository = $ispResellerRepository;
     }
 
     public function listBusinesses(int $tenantId): Collection
@@ -39,7 +59,7 @@ class BusinessService
     public function createBusiness(array $data, int $tenantId): Business
     {
         // 1. Check Subscription Limits
-        $tenant = \App\Models\Tenant::with('plan')->find($tenantId);
+        $tenant = $this->tenantRepository->findById($tenantId);
         if (!$tenant || !$tenant->plan) {
             throw new \Exception("Tenant or Plan not found.");
         }
@@ -72,7 +92,7 @@ class BusinessService
         ];
 
         foreach ($accounts as $acc) {
-            \App\Models\Account::create([
+            $this->accountRepository->create([
                 'public_id' => (string) Str::uuid(),
                 'tenant_id' => $business->tenant_id,
                 'business_id' => $business->id,
@@ -121,7 +141,9 @@ class BusinessService
 
         // Append role to each user for frontend display
         $business->users->each(function ($user) {
-            $user->role = $user->getRoleNames()->first();
+            $user->role = $user->getRoleNames()->first(function ($role) {
+                return in_array($role, ['business_admin', 'kasir']);
+            });
         });
 
         return $business->users;
@@ -145,12 +167,12 @@ class BusinessService
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data, $business, $tenantId, $password) {
             // Check if user already exists
-            $existingUser = \App\Models\User::where('email', $data['email'])->first();
+            $existingUser = $this->userRepository->findByEmail($data['email']);
             if ($existingUser) {
                 throw new \Exception("User with this email already exists.");
             }
 
-            $user = \App\Models\User::create([
+            $user = $this->userRepository->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => \Illuminate\Support\Facades\Hash::make($password),
@@ -172,5 +194,135 @@ class BusinessService
 
             return $user;
         });
+    }
+
+    public function createBusinessOutlet(array $data, string $businessPublicId, int $tenantId): \App\Models\IspOutlet
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            throw new \Exception("Business not found.");
+        }
+
+        return $this->ispOutletService->createOutlet($data, $tenantId, $business->id);
+    }
+
+    public function getBusinessOutlets(string $businessPublicId, int $tenantId): ?Collection
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return null;
+        }
+
+        return $business->outlets;
+    }
+
+    public function updateBusinessOutlet(string $businessPublicId, string $outletPublicId, int $tenantId, array $data): bool
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return false;
+        }
+
+        return $this->ispOutletService->updateOutletByPublicId($outletPublicId, $tenantId, $data);
+    }
+
+    public function deleteBusinessOutlet(string $businessPublicId, string $outletPublicId, int $tenantId): bool
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return false;
+        }
+
+        return $this->ispOutletService->deleteOutletByPublicId($outletPublicId, $tenantId);
+    }
+
+    public function getBusinessResellers(string $businessPublicId, int $tenantId): ?Collection
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return null;
+        }
+
+        return $business->resellers()->with('outlet')->get();
+    }
+
+    public function createBusinessReseller(array $data, string $businessPublicId, int $tenantId): \App\Models\IspReseller
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            throw new \Exception("Business not found.");
+        }
+
+        // Verify Outlet belongs to this business
+        $outletId = $data['outlet_id'] ?? null;
+        if (isset($data['outlet_public_id'])) {
+            $outlet = $business->outlets()->where('public_id', $data['outlet_public_id'])->first();
+            if ($outlet) {
+                $outletId = $outlet->id;
+            }
+        } elseif ($outletId) {
+            $outlet = $business->outlets()->where('id', $outletId)->first();
+        } else {
+            $outlet = null;
+        }
+
+        if (!$outlet) {
+            throw new \Exception("Outlet not found or does not belong to this business.");
+        }
+
+        // Generate Code: RES-{Timestamp}-{Random}
+        $code = 'RES-' . now()->timestamp . '-' . Str::random(3);
+
+        return $this->ispResellerRepository->create([
+            'tenant_id' => $tenantId,
+            'outlet_id' => $outlet->id,
+            'code' => $code,
+            'name' => $data['name'],
+            'phone' => $data['phone'],
+            'address' => $data['address'] ?? null,
+            'is_active' => true,
+            'created_at' => now(),
+        ]);
+    }
+
+    public function updateBusinessReseller(string $businessPublicId, string $resellerCode, int $tenantId, array $data): bool
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return false;
+        }
+
+        // Verify reseller belongs to this business via outlet
+        $reseller = $this->ispResellerRepository->findByCode($resellerCode, $tenantId);
+        if (!$reseller) {
+            return false;
+        }
+
+        // If updating outlet, verify new outlet belongs to this business
+        if (isset($data['outlet_public_id'])) {
+            $outlet = $business->outlets()->where('public_id', $data['outlet_public_id'])->first();
+            if (!$outlet) {
+                return false;
+            }
+            $data['outlet_id'] = $outlet->id;
+            unset($data['outlet_public_id']);
+        } elseif (isset($data['outlet_id'])) {
+            $outlet = $business->outlets()->where('id', $data['outlet_id'])->first();
+            if (!$outlet) {
+                return false;
+            }
+        }
+
+        return $this->ispResellerRepository->updateByCode($resellerCode, $tenantId, $data);
+    }
+
+    public function deleteBusinessReseller(string $businessPublicId, string $resellerCode, int $tenantId): bool
+    {
+        $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
+        if (!$business) {
+            return false;
+        }
+
+        return $this->ispResellerRepository->deleteByCode($resellerCode, $tenantId);
     }
 }

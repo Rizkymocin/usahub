@@ -15,9 +15,9 @@ return new class extends Migration {
                 ->on('tenants')
                 ->onDelete('cascade');
 
-            $table->foreignId('outlet_id')
+            $table->foreignId('business_id')
                 ->references('id')
-                ->on('isp_outlets')
+                ->on('businesses')
                 ->onDelete('cascade');
 
             $table->foreignId('reseller_id')
