@@ -207,8 +207,10 @@ export default function Stock() {
             <CardHeader>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <CardTitle>Permintaan Stok Voucher</CardTitle>
-                        <CardDescription>Kelola permintaan stok voucher dari staff Finance/Outlet.</CardDescription>
+                        <h2 className="text-xl font-semibold tracking-tight">Permintaan Stok Voucher</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Kelola permintaan stok voucher dari staff Finance/Outlet.
+                        </p>
                     </div>
                 </div>
             </CardHeader>

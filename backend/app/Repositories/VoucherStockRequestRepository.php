@@ -13,7 +13,7 @@ class VoucherStockRequestRepository
     public function findByBusiness(int $businessId, ?string $status = null): Collection
     {
         $query = VoucherStockRequest::where('business_id', $businessId)
-            ->with(['requestedBy', 'processedBy', 'outlet', 'items.voucherProduct']);
+            ->with(['requestedBy', 'processedBy', 'outlet', 'items.voucher_product']);
 
         if ($status) {
             $query->where('status', $status);
@@ -27,7 +27,7 @@ class VoucherStockRequestRepository
      */
     public function findById(int $id): ?VoucherStockRequest
     {
-        return VoucherStockRequest::with(['requestedBy', 'processedBy', 'outlet', 'items.voucherProduct'])
+        return VoucherStockRequest::with(['requestedBy', 'processedBy', 'outlet', 'items.voucher_product'])
             ->find($id);
     }
 

@@ -40,16 +40,6 @@ class IspVoucherProduct extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function batchItems()
-    {
-        return $this->hasMany(VoucherBatchItem::class, 'voucher_product_id');
-    }
-
-    public function stocks()
-    {
-        return $this->hasMany(IspVoucherStock::class, 'voucher_product_id');
-    }
-
     public function saleItems()
     {
         return $this->hasMany(VoucherSaleItem::class, 'voucher_product_id');

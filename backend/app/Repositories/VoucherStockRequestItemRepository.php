@@ -28,7 +28,7 @@ class VoucherStockRequestItemRepository
     public function findByStockRequest(int $stockRequestId)
     {
         return VoucherStockRequestItem::where('stock_request_id', $stockRequestId)
-            ->with('voucherProduct')
+            ->with('voucher_product')
             ->get();
     }
 }

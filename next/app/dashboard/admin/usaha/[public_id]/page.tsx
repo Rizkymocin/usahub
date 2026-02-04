@@ -51,6 +51,12 @@ export default function DetailUsahaAdminPage() {
     const business = useBusiness()
     const { fetchBusiness } = useBusinessActions()
 
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
     useEffect(() => {
         if (public_id) {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
@@ -74,7 +80,7 @@ export default function DetailUsahaAdminPage() {
                 <TabsList className="w-full bg-primary text-primary-foreground">
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="account">Akun (COA)</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="users">Pengguna</TabsTrigger>
-                    {business?.category === 'isp' && (
+                    {isMounted && business?.category === 'isp' && (
                         <>
                             <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>
                             <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>
@@ -90,7 +96,7 @@ export default function DetailUsahaAdminPage() {
                 <TabsContent value="users">
                     <User />
                 </TabsContent >
-                {business?.category === 'isp' && (
+                {isMounted && business?.category === 'isp' && (
                     <>
                         <TabsContent value="outlets"><Outlets /></TabsContent>
                         <TabsContent value="resellers"><Resellers /></TabsContent>

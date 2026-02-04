@@ -39,4 +39,9 @@ class VoucherStockRequestItem extends Model
     {
         return $this->belongsTo(IspVoucherProduct::class, 'voucher_product_id');
     }
+
+    public function voucher_product()
+    {
+        return $this->belongsTo(IspVoucherProduct::class, 'voucher_product_id');
+    }
 }

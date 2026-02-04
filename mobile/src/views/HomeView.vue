@@ -108,7 +108,7 @@ import { computed } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRouter } from 'vue-router';
 import { 
-  Bell, Wallet, Ticket, Users, Clock, 
+  Bell, Wallet, Ticket, Clock, 
   FileText, Wrench, UserPlus, ClipboardList, 
   AlertCircle, Settings, CheckCircle 
 } from 'lucide-vue-next';

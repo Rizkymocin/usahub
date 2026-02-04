@@ -48,7 +48,8 @@ export interface StockRequest {
 interface StockRequestStore {
     requests: StockRequest[]
     isLoading: boolean
-    fetchRequests: (businessPublicId: string, status?: string) => Promise<void>
+    lastFetchedBusinessId: string | null
+    fetchRequests: (businessPublicId: string, status?: string, forceRefresh?: boolean) => Promise<void>
     approveRequest: (businessPublicId: string, requestId: number, note?: string) => Promise<void>
     rejectRequest: (businessPublicId: string, requestId: number, note?: string) => Promise<void>
 }
@@ -56,13 +57,23 @@ interface StockRequestStore {
 export const useStockRequestStore = create<StockRequestStore>((set, get) => ({
     requests: [],
     isLoading: false,
+    lastFetchedBusinessId: null,
 
-    fetchRequests: async (businessPublicId: string, status?: string) => {
+    fetchRequests: async (businessPublicId: string, status?: string, forceRefresh = false) => {
+        // Cache check
+        const { lastFetchedBusinessId, requests } = get()
+        if (!forceRefresh && lastFetchedBusinessId === businessPublicId && requests.length > 0) {
+            return
+        }
+
         set({ isLoading: true })
         try {
             const params = status && status !== 'all' ? { status } : {}
             const response = await axios.get(`/businesses/${businessPublicId}/stock-requests`, { params })
-            set({ requests: response.data.data })
+            set({
+                requests: response.data.data,
+                lastFetchedBusinessId: businessPublicId
+            })
         } catch (error) {
             console.error('Failed to fetch stock requests:', error)
             set({ requests: [] })
@@ -75,8 +86,8 @@ export const useStockRequestStore = create<StockRequestStore>((set, get) => ({
         set({ isLoading: true })
         try {
             await axios.post(`/businesses/${businessPublicId}/stock-requests/${requestId}/approve`, { process_note: note })
-            // Refresh list after approval
-            await get().fetchRequests(businessPublicId)
+            // Refresh list after approval (force refresh)
+            await get().fetchRequests(businessPublicId, undefined, true)
         } catch (error) {
             console.error('Failed to approve request:', error)
             throw error
@@ -89,8 +100,8 @@ export const useStockRequestStore = create<StockRequestStore>((set, get) => ({
         set({ isLoading: true })
         try {
             await axios.post(`/businesses/${businessPublicId}/stock-requests/${requestId}/reject`, { process_note: note })
-            // Refresh list after rejection
-            await get().fetchRequests(businessPublicId)
+            // Refresh list after rejection (force refresh)
+            await get().fetchRequests(businessPublicId, undefined, true)
         } catch (error) {
             console.error('Failed to reject request:', error)
             throw error
