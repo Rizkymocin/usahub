@@ -39,7 +39,9 @@ import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/busin
 import Outlets from "./Outlets"
 import Resellers from "./Resellers"
 import Topups from "./Topups"
+import Stock from "./Stock"
 import Vouchers from "./Vouchers"
+import VoucherSales from "./VoucherSales"
 
 
 export default function DetailUsahaAdminPage() {
@@ -76,7 +78,7 @@ export default function DetailUsahaAdminPage() {
                         <>
                             <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>
                             <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>
-                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="topups">Deposit</TabsTrigger>
+                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="stocks">Permintaan Stok Voucher</TabsTrigger>
                             <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="vouchers">Voucher</TabsTrigger>
                         </>
                     )}
@@ -92,7 +94,7 @@ export default function DetailUsahaAdminPage() {
                     <>
                         <TabsContent value="outlets"><Outlets /></TabsContent>
                         <TabsContent value="resellers"><Resellers /></TabsContent>
-                        <TabsContent value="topups"><Topups /></TabsContent>
+                        <TabsContent value="stocks"><Stock /></TabsContent>
                         <TabsContent value="vouchers"><Vouchers /></TabsContent>
                     </>
                 )}

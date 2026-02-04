@@ -77,32 +77,85 @@ class BusinessService
         return \Illuminate\Support\Facades\DB::transaction(function () use ($data, $tenantId) {
             $business = $this->repository->create($data);
             $this->createDefaultAccounts($business);
+
+            // If ISP business, create default outlet
+            if (isset($data['category']) && $data['category'] === 'isp') {
+                $this->createDefaultOutlet($business, $tenantId);
+            }
+
             return $business;
         });
     }
 
     private function createDefaultAccounts(Business $business)
     {
-        $accounts = [
-            ['name' => 'Pendapatan', 'type' => 'revenue', 'code' => '1000'],
-            ['name' => 'Pengeluaran', 'type' => 'expense', 'code' => '2000'],
-            ['name' => 'Modal', 'type' => 'equity', 'code' => '3000'],
-            ['name' => 'Aset', 'type' => 'asset', 'code' => '4000'],
-            ['name' => 'Hutang', 'type' => 'liability', 'code' => '5000'],
+        $rootAccounts = [
+            ['code' => '1000', 'name' => 'Aset Lancar', 'type' => 'asset'],
+            ['code' => '2000', 'name' => 'Kewajiban', 'type' => 'liability'],
+            ['code' => '4000', 'name' => 'Pendapatan', 'type' => 'revenue'],
+            ['code' => '5000', 'name' => 'Beban', 'type' => 'expense'],
         ];
 
-        foreach ($accounts as $acc) {
-            $this->accountRepository->create([
-                'public_id' => (string) Str::uuid(),
-                'tenant_id' => $business->tenant_id,
+        $parents = [];
+
+        foreach ($rootAccounts as $acc) {
+            $account = $this->accountRepository->create([
+                'public_id'   => (string) Str::uuid(),
+                'tenant_id'   => $business->tenant_id,
                 'business_id' => $business->id,
-                'name' => $acc['name'],
-                'type' => $acc['type'],
-                'code' => $acc['code'],
-                'is_active' => true,
-                'parent_id' => null, // Root accounts
+                'name'        => $acc['name'],
+                'type'        => $acc['type'],
+                'code'        => $acc['code'],
+                'is_active'   => true,
+                'parent_id'   => null,
+            ]);
+
+            // simpan parent berdasarkan code
+            $parents[$acc['code']] = $account->id;
+        }
+
+        $childAccounts = [
+            // Aset Lancar (1000)
+            ['code' => '1010', 'name' => 'Kas', 'type' => 'asset', 'parent' => '1000'],
+            ['code' => '1020', 'name' => 'Bank', 'type' => 'asset', 'parent' => '1000'],
+
+            // Kewajiban (2000)
+            ['code' => '2010', 'name' => 'Deposit Outlet', 'type' => 'liability', 'parent' => '2000'],
+            ['code' => '2020', 'name' => 'Utang Fee Reseller', 'type' => 'liability', 'parent' => '2000'],
+
+            // Pendapatan (4000)
+            ['code' => '4010', 'name' => 'Penjualan Voucher Internet', 'type' => 'revenue', 'parent' => '4000'],
+
+            // Beban (5000)
+            ['code' => '5010', 'name' => 'Fee Reseller', 'type' => 'expense', 'parent' => '5000'],
+        ];
+
+        foreach ($childAccounts as $acc) {
+            $this->accountRepository->create([
+                'public_id'   => (string) Str::uuid(),
+                'tenant_id'   => $business->tenant_id,
+                'business_id' => $business->id,
+                'name'        => $acc['name'],
+                'type'        => $acc['type'],
+                'code'        => $acc['code'],
+                'is_active'   => true,
+                'parent_id'   => $parents[$acc['parent']],
             ]);
         }
+    }
+
+    private function createDefaultOutlet(Business $business, int $tenantId)
+    {
+        $outletName = $business->name . ' Admin';
+
+        // Create default outlet using the IspOutletService
+        $this->ispOutletService->createOutlet([
+            'name' => $outletName,
+            'email' => 'admin@' . strtolower(str_replace(' ', '', $business->name)) . '.local',
+            'phone' => '',
+            'address' => '',
+            'role' => 'isp_outlet',
+        ], $tenantId, $business->id);
     }
 
     public function updateBusiness(string $public_id, int $tenantId, array $data): bool
@@ -141,9 +194,10 @@ class BusinessService
 
         // Append role to each user for frontend display
         $business->users->each(function ($user) {
-            $user->role = $user->getRoleNames()->first(function ($role) {
+            $user->role_names = $user->getRoleNames(); // Return all roles as strings
+            $user->role = $user->role_names->first(function ($role) {
                 return in_array($role, ['business_admin', 'kasir']);
-            });
+            }) ?? $user->role_names->first(); // Fallback to first role
         });
 
         return $business->users;
@@ -156,16 +210,25 @@ class BusinessService
             throw new \Exception("Business not found.");
         }
 
-        // Determine default password based on role
-        $password = match ($data['role']) {
+        // Standardize roles to array
+        $roles = is_array($data['role']) ? $data['role'] : [$data['role']];
+
+        // Determine default password based on primary role (first one)
+        // You might want a better priority logic here if needed
+        $primaryRole = $roles[0] ?? 'default';
+        $password = match ($primaryRole) {
             'kasir' => 'kasir123',
             'business_admin' => 'admin123',
             'isp_outlet' => 'outlet123',
             'isp_teknisi' => 'teknisi123',
-            default => 'password123', // Fallback
+            'finance' => 'finance123',
+            'teknisi_maintenance' => 'teknisi123',
+            'teknisi_pasang_baru' => 'teknisi123',
+            'sales' => 'sales123',
+            default => 'password123',
         };
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($data, $business, $tenantId, $password) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($data, $business, $tenantId, $password, $roles) {
             // Check if user already exists
             $existingUser = $this->userRepository->findByEmail($data['email']);
             if ($existingUser) {
@@ -178,8 +241,8 @@ class BusinessService
                 'password' => \Illuminate\Support\Facades\Hash::make($password),
             ]);
 
-            // Assign Role using Spatie
-            $user->assignRole($data['role']);
+            // Assign Roles using Spatie
+            $user->syncRoles($roles);
 
             // Attach to BusinessPivot
             $business->users()->attach($user->id, [
@@ -189,8 +252,9 @@ class BusinessService
                 'joined_at' => now(),
             ]);
 
-            // Append role for response
-            $user->role = $data['role'];
+            // Append roles for response
+            $user->role_names = $roles;
+            $user->role = $roles[0] ?? null; // Backward compatibility
 
             return $user;
         });

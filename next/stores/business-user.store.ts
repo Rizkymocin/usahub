@@ -6,6 +6,7 @@ export interface User {
     name: string
     email: string
     role: string
+    role_names?: string[]
 }
 
 interface BusinessUserState {

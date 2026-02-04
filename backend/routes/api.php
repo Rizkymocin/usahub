@@ -11,10 +11,21 @@ use App\Http\Controllers\ResellerPaymentController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OutletPinLoginController;
+use App\Http\Controllers\Auth\MobileAuthController;
 
 Route::post('/register-tenant', [AuthController::class, 'registerTenant']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/outlet/login', [OutletPinLoginController::class, 'login']);
+
+// Mobile Auth Routes
+Route::prefix('mobile')->group(function () {
+    Route::post('/login', [MobileAuthController::class, 'login']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [MobileAuthController::class, 'logout']);
+        Route::get('/user', [MobileAuthController::class, 'user']);
+    });
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -44,8 +55,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'storeReseller']);
     Route::put('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'updateReseller']);
     Route::delete('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'destroyReseller']);
-});
 
-Route::middleware(['auth:sanctum', 'role:isp_outlet'])->group(function () {
-    // endpoint outlet
+    // Voucher Product Routes
+    Route::post('/businesses/{public_id}/vouchers', [\App\Http\Controllers\IspVoucherController::class, 'store']);
+    Route::get('/businesses/{public_id}/vouchers', [\App\Http\Controllers\IspVoucherController::class, 'index']);
+    Route::put('/businesses/{public_id}/vouchers/{voucher_public_id}', [\App\Http\Controllers\IspVoucherController::class, 'update']);
+    Route::delete('/businesses/{public_id}/vouchers/{voucher_public_id}', [\App\Http\Controllers\IspVoucherController::class, 'destroy']);
+
+    // Voucher Stock Request Routes (Finance → Admin)
+    Route::get('/businesses/{public_id}/stock-requests', [\App\Http\Controllers\VoucherStockRequestController::class, 'index']);
+    Route::post('/businesses/{public_id}/stock-requests', [\App\Http\Controllers\VoucherStockRequestController::class, 'store']);
+    Route::get('/businesses/{public_id}/stock-requests/{request_id}', [\App\Http\Controllers\VoucherStockRequestController::class, 'show']);
+    Route::post('/businesses/{public_id}/stock-requests/{request_id}/approve', [\App\Http\Controllers\VoucherStockRequestController::class, 'approve']);
+    Route::post('/businesses/{public_id}/stock-requests/{request_id}/reject', [\App\Http\Controllers\VoucherStockRequestController::class, 'reject']);
+
+    // Voucher Sales Routes (Finance sells to Outlet/Reseller)
+    Route::get('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'index']);
+    Route::post('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'store']);
+    Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}', [\App\Http\Controllers\VoucherSaleController::class, 'show']);
+    Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/payment', [\App\Http\Controllers\VoucherSaleController::class, 'addPayment']);
 });

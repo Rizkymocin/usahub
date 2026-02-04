@@ -16,14 +16,19 @@ import { useBusinessUsers, useIsBusinessUserLoading, useBusinessUserActions } fr
 import { Badge } from "@/components/ui/badge"
 
 // Helper to format role text
-const formatRole = (role: string | undefined) => {
+const formatRole = (role: string | undefined | any) => {
     if (!role) return "Tidak Ada Peran";
+    if (typeof role !== 'string') return JSON.stringify(role); // Debugging fallback or safe return
 
     switch (role) {
         case 'business_admin': return 'Admin Usaha';
         case 'kasir': return 'Kasir';
-        case 'isp_teknisi': return 'Teknisi';
-        case 'isp_outlet': return 'Outlet';
+        case 'isp_teknisi': return 'Teknisi'; // Legacy
+        case 'isp_outlet': return 'Outlet'; // Legacy
+        case 'finance': return 'Finance';
+        case 'teknisi_maintenance': return 'Teknisi Maintenance';
+        case 'teknisi_pasang_baru': return 'Teknisi Pasang Baru';
+        case 'sales': return 'Sales';
         case 'owner': return 'Pemilik';
         case 'manager': return 'Manajer';
         case 'staff': return 'Staf';
@@ -49,7 +54,7 @@ export default function UserPage() {
     // Form State
     const [newName, setNewName] = useState("")
     const [newEmail, setNewEmail] = useState("")
-    const [newRole, setNewRole] = useState("")
+    const [newRoles, setNewRoles] = useState<string[]>([])
 
     const business = useBusiness()
 
@@ -62,9 +67,11 @@ export default function UserPage() {
 
         if (business?.category === 'isp') {
             return [
-                ...baseRoles,
-                { value: 'isp_teknisi', label: 'ISP Teknisi' },
-                { value: 'isp_outlet', label: 'ISP Outlet' },
+                { value: 'business_admin', label: 'Business Admin' },
+                { value: 'finance', label: 'Finance' },
+                { value: 'teknisi_maintenance', label: 'Teknisi Maintenance' },
+                { value: 'teknisi_pasang_baru', label: 'Teknisi Pasang Baru' },
+                { value: 'sales', label: 'Sales' },
             ]
         }
 
@@ -80,8 +87,8 @@ export default function UserPage() {
     }, [public_id])
 
     const handleAddUser = async () => {
-        if (!newName || !newEmail || !newRole) {
-            toast.error("Semua field harus diisi")
+        if (!newName || !newEmail || newRoles.length === 0) {
+            toast.error("Semua field harus diisi dan minimal 1 peran dipilih")
             return
         }
 
@@ -90,7 +97,7 @@ export default function UserPage() {
             const payload = {
                 name: newName,
                 email: newEmail,
-                role: newRole
+                role: newRoles // Send array
             }
             const { data } = await axios.post(`businesses/${public_id}/users`, payload)
 
@@ -102,7 +109,7 @@ export default function UserPage() {
                 setIsAddDialogOpen(false)
                 setNewName("")
                 setNewEmail("")
-                setNewRole("")
+                setNewRoles([])
             }
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal menambahkan pengguna"
@@ -155,28 +162,51 @@ export default function UserPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="role">Peran</Label>
-                                    <Select value={newRole} onValueChange={setNewRole}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih Peran" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableRoles.map((role) => (
-                                                <SelectItem key={role.value} value={role.value}>
+                                    <Label>Peran</Label>
+                                    <div className="grid grid-cols-1 gap-2 border rounded-md p-3">
+                                        {availableRoles.map((role) => (
+                                            <div key={role.value} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`role-${role.value}`}
+                                                    checked={newRoles.includes(role.value)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setNewRoles([...newRoles, role.value])
+                                                        } else {
+                                                            setNewRoles(newRoles.filter(r => r !== role.value))
+                                                        }
+                                                    }}
+                                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                                <Label htmlFor={`role-${role.value}`} className="cursor-pointer font-normal">
                                                     {role.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {newRole && (
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {newRoles.length > 0 && (
                                         <div className="text-sm text-muted-foreground mt-2 p-2 bg-muted rounded border border-border">
-                                            Password default untuk role ini adalah <strong>
-                                                {newRole === 'kasir' ? 'kasir123' :
-                                                    newRole === 'business_admin' ? 'admin123' :
-                                                        newRole === 'isp_outlet' ? 'outlet123' :
-                                                            newRole === 'isp_teknisi' ? 'teknisi123' :
-                                                                'password123'}
-                                            </strong>
+                                            Role Password Defaults:
+                                            <ul className="list-disc list-inside mt-1 space-y-1">
+                                                {newRoles.map(role => {
+                                                    const password = role === 'kasir' ? 'kasir123' :
+                                                        role === 'business_admin' ? 'admin123' :
+                                                            role === 'isp_outlet' ? 'outlet123' :
+                                                                (role === 'isp_teknisi' || role.startsWith('teknisi_')) ? 'teknisi123' :
+                                                                    role === 'finance' ? 'finance123' :
+                                                                        role === 'sales' ? 'sales123' :
+                                                                            'password123';
+                                                    return (
+                                                        <li key={role}>
+                                                            <span className="font-medium">{availableRoles.find(r => r.value === role)?.label}:</span> {password}
+                                                        </li>
+                                                    )
+                                                })}
+                                            </ul>
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                *User akan dibuat menggunakan password dari role prioritas utama (urutan sistem).
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -227,9 +257,19 @@ export default function UserPage() {
                                         <TableCell className="font-medium">{user.name}</TableCell>
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>
-                                            <Badge variant="secondary" className="font-normal">
-                                                {formatRole(user.role)}
-                                            </Badge>
+                                            <div className="flex flex-wrap gap-1">
+                                                {user.role_names && user.role_names.length > 0 ? (
+                                                    user.role_names.map((role: string) => (
+                                                        <Badge key={role} variant="secondary" className="font-normal">
+                                                            {formatRole(role)}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <Badge variant="secondary" className="font-normal">
+                                                        {formatRole(user.role)}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))

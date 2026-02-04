@@ -17,11 +17,16 @@ class RoleSeeder extends Seeder
         // Roles can still be scoped to businesses when assigned to users
         app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId(null);
 
-        Role::create(['name' => 'superadmin']);
-        Role::create(['name' => 'owner']);
-        Role::create(['name' => 'business_admin']);
-        Role::create(['name' => 'kasir']);
-        Role::create(['name' => 'isp_outlet']);
-        Role::create(['name' => 'isp_teknisi']);
+        Role::firstOrCreate(['name' => 'superadmin']);
+        Role::firstOrCreate(['name' => 'owner']);
+        Role::firstOrCreate(['name' => 'business_admin']);
+        Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'finance']);
+        Role::firstOrCreate(['name' => 'kasir']);
+        Role::firstOrCreate(['name' => 'teknisi_maintenance']);
+        Role::firstOrCreate(['name' => 'teknisi_pasang_baru']);
+        Role::firstOrCreate(['name' => 'sales']);
+        Role::firstOrCreate(['name' => 'isp_outlet']);
+        Role::firstOrCreate(['name' => 'isp_teknisi']);
     }
 }

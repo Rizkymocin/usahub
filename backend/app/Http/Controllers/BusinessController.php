@@ -134,7 +134,7 @@ class BusinessController extends Controller
         $tenantId = $user->tenant?->id;
 
         if (!$tenantId) {
-            $business = $user->businesses()->where('public_id', $business_public_id)->first();
+            $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
             if (!$business) {
                 return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
             }
@@ -144,7 +144,8 @@ class BusinessController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'email' => 'required|email',
-            'role' => 'required|string'
+            'role' => 'required|array', // Enforce array or handle string conversion
+            'role.*' => 'string'
         ]);
 
         try {

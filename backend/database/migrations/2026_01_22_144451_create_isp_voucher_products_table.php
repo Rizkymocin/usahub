@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('isp_voucher_products', function (Blueprint $table) {
             $table->id();
+            $table->string('public_id')->unique();
 
             $table->foreignId('business_id')
                 ->constrained()

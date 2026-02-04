@@ -63,7 +63,6 @@ export default function UserPage() {
             return [
                 ...baseRoles,
                 { value: 'isp_teknisi', label: 'ISP Teknisi' },
-                { value: 'isp_outlet', label: 'ISP Outlet' },
             ]
         }
 

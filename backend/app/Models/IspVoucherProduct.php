@@ -11,10 +11,10 @@ class IspVoucherProduct extends Model
 
     protected $table = 'isp_voucher_products';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
-        'tenant_id',
+        'public_id',
         'business_id',
         'name',
         'duration_value',
@@ -22,21 +22,36 @@ class IspVoucherProduct extends Model
         'selling_price',
         'owner_share',
         'reseller_fee',
-        'is_active',
-        'created_at',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'selling_price' => 'decimal:2',
+        'owner_share' => 'decimal:2',
+        'reseller_fee' => 'decimal:2',
     ];
 
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
+    protected $hidden = [
+        'id',
+        'business_id',
+    ];
 
     public function business()
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function batchItems()
+    {
+        return $this->hasMany(VoucherBatchItem::class, 'voucher_product_id');
+    }
+
+    public function stocks()
+    {
+        return $this->hasMany(IspVoucherStock::class, 'voucher_product_id');
+    }
+
+    public function saleItems()
+    {
+        return $this->hasMany(VoucherSaleItem::class, 'voucher_product_id');
     }
 }

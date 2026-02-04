@@ -1,34 +1,36 @@
 {
-  "name": "usahub-mobile",
-  "version": "1.0.0",
-  "description": "UsaHub Mobile App",
+  "name": "mobile",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/core": "latest",
-    "@capacitor/camera": "latest",
-    "@capacitor/splash-screen": "latest",
-    "@capacitor/app": "latest",
-    "@capacitor/preferences": "latest",
-    "@capacitor/network": "latest",
-    "framework7": "^8.3.3",
-    "framework7-vue": "^8.3.3",
-    "vue": "^3.4.21",
-    "pinia": "^2.1.7",
-    "vue-router": "^4.3.0",
-    "axios": "^1.6.8",
-    "framework7-icons": "^5.0.5",
-    "material-icons": "^1.13.12"
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "@tailwindcss/vite": "^4.1.18",
+    "@vueuse/core": "^14.2.0",
+    "axios": "^1.13.4",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-vue-next": "^0.563.0",
+    "pinia": "^3.0.4",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "vue": "^3.5.24",
+    "vue-router": "^5.0.2",
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
-    "@capacitor/cli": "latest",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "vite": "^5.2.0",
-    "typescript": "^5.4.2",
-    "vue-tsc": "^2.0.6"
+    "@capacitor/cli": "^7.4.5",
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "vue-tsc": "^3.1.4"
   }
 }

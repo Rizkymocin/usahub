@@ -3,73 +3,55 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Business;
-use App\Models\IspVoucher;
+use App\Services\IspVoucherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class IspVoucherController extends Controller
 {
-    private function resolveTenantId(Request $request, string $businessPublicId): ?int
-    {
-        $user = $request->user();
-        if ($user->tenant) {
-            return $user->tenant->id;
-        }
-        $business = $user->businesses()->where('public_id', $businessPublicId)->first();
-        return $business ? $business->tenant_id : null;
-    }
+    private IspVoucherService $service;
 
-    private function getBusiness(string $publicId, int $tenantId): ?Business
+    public function __construct(IspVoucherService $service)
     {
-        return Business::where('public_id', $publicId)->where('tenant_id', $tenantId)->first();
+        $this->service = $service;
     }
 
     public function index(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $this->resolveTenantId($request, $businessPublicId);
-        if (!$tenantId) {
+        $products = $this->service->getBusinessVoucherProducts($businessPublicId, $request);
+
+        if ($products === null) {
             return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
         }
 
-        $business = $this->getBusiness($businessPublicId, $tenantId);
-        if (!$business) {
-            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
-        }
-
-        $vouchers = IspVoucher::where('business_id', $business->id)->get(); // Assuming business_id exists
-
-        return response()->json(['success' => true, 'data' => $vouchers]);
+        return response()->json(['success' => true, 'data' => $products]);
     }
 
     public function store(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $this->resolveTenantId($request, $businessPublicId);
-        if (!$tenantId) {
-            return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
-        }
-
-        $business = $this->getBusiness($businessPublicId, $tenantId);
-        if (!$business) {
-            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
-        }
-
         $validated = $request->validate([
-            'code' => 'required|string|unique:isp_vouchers,code',
-            'price' => 'required|numeric',
-            // 'voucher_id' ? user mentioned 'voucherd_id' from external API
-            'voucher_id' => 'nullable|string',
+            'name' => 'required|string',
+            'duration_value' => 'required|integer|min:1',
+            'duration_unit' => 'required|in:hour,day,month',
+            'selling_price' => 'required|numeric|min:0',
+            'owner_share' => 'required|numeric|min:0',
+            'reseller_fee' => 'required|numeric|min:0',
         ]);
 
-        $voucher = IspVoucher::create([
-            'business_id' => $business->id,
-            'code' => $validated['code'],
-            'price' => $validated['price'],
-            'voucher_id' => $validated['voucher_id'] ?? Str::random(10), // Placeholder
-            'status' => 'active', // default
-        ]);
-
-        return response()->json(['success' => true, 'data' => $voucher], 201);
+        try {
+            $product = $this->service->createVoucherProduct($businessPublicId, $request, $validated);
+            return response()->json(['success' => true, 'data' => $product], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
+    public function destroy(Request $request, string $businessPublicId, string $voucherPublicId): JsonResponse
+    {
+        try {
+            $this->service->deleteVoucherProduct($businessPublicId, $request, $voucherPublicId);
+            return response()->json(['success' => true, 'message' => 'Voucher product deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
     }
 }

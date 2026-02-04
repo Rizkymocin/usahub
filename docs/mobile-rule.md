@@ -1,20 +1,19 @@
 Kamu adalah senior mobile frontend engineer level production.
 
-Saya sedang membangun APLIKASI SEKOLAH berbasis mobile Android
+Saya sedang membangun APLIKASI USAHAHUB berbasis mobile Android
 menggunakan:
 
 - Vite
 - Vue 3 (Composition API)
 - Pinia
 - Vue Router
-- Framework 7
+- Tailwind
 - CapacitorJS
 
 BACKEND:
 - Laravel API (sudah aman & final)
-- Login outlet dan teknisi
-- Absensi QR sudah divalidasi penuh di backend
-- Frontend TIDAK BOLEH mengatur logic absensi
+- Login finance, teknisi_maintenance, teknisi_pasang_baru, sales
+- Frontend TIDAK BOLEH mengatur logic 
 
 FITUR YANG HARUS ADA SEKARANG:
 - Login 
@@ -29,18 +28,17 @@ DESAIN UI:
 - Button besar
 - Font jelas
 - Cocok untuk umkm
-- Tampilan sederhana & profesional
+- Tampilan profesional
 - Tidak padat
 
 NAVIGASI:
 Bottom navigation:
 - Beranda
-- top up
-- aktivitas
+- Aktivitas
 - Akun
 
 ROLE MANAGEMENT:
-- User memiliki role: outlet dan teknisi
+- User memiliki role: finance, teknisi_maintenance, teknisi_pasang_baru, sales
 
 SECURITY RULE:
 - Semua validasi di backend
@@ -78,8 +76,9 @@ ATURAN KERAS:
 OUTPUT YANG SAYA INGINKAN:
 - Struktur folder production-ready
 - MainLayout dengan bottom navigation
-- Halaman Top up
-- Halaman Aktivitas penagihan reseller
+- Halaman Beranda
+- Halaman Aktivitas
+- Halaman Akun
 - Store Pinia lengkap
 - Router guard
 - Skeleton component

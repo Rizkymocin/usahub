@@ -60,9 +60,9 @@ export default function DetailUsahaPage() {
             </div>
 
             <Tabs defaultValue="account" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="account">Manajemen Akun (COA)</TabsTrigger>
-                    <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
+                <TabsList className="w-full">
+                    <TabsTrigger value="account">Akun (COA)</TabsTrigger>
+                    <TabsTrigger value="users">Pengguna</TabsTrigger>
                     {business?.category === 'isp' && (
                         <>
                             <TabsTrigger value="outlets">Outlet</TabsTrigger>

@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('voucher_sales', function (Blueprint $table) {
             $table->id();
+            $table->string('public_id')->unique();
 
             $table->foreignId('tenant_id')
                 ->constrained()
@@ -19,18 +20,29 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            // channel penjualan
-            $table->enum('channel_type', ['isp_outlet', 'isp_teknisi', 'business_admin']);
+            // channel penjualan: outlet, reseller, atau admin
+            $table->enum('channel_type', ['outlet', 'reseller', 'admin']);
 
-            // outlet_id / teknisi_id / null (admin bisnis)
-            $table->foreignId('channel_id')->nullable();
+            $table->foreignId('outlet_id')
+                ->nullable()
+                ->constrained('isp_outlets')
+                ->cascadeOnDelete();
+
+            $table->foreignId('reseller_id')
+                ->nullable()
+                ->constrained('isp_resellers')
+                ->cascadeOnDelete();
 
             // user yang melakukan penjualan
             $table->foreignId('sold_by_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->timestamp('sold_at')->nullable();
+            // total transaksi
+            $table->decimal('total_amount', 15, 2);
+
+            $table->enum('status', ['pending', 'completed', 'cancelled'])->default('completed');
+            $table->timestamp('sold_at');
 
             $table->timestamps();
 
