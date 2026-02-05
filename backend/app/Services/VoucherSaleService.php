@@ -6,6 +6,7 @@ use App\Repositories\VoucherSaleRepository;
 use App\Repositories\VoucherSaleItemRepository;
 use App\Repositories\BusinessRepository;
 use App\Repositories\IspVoucherProductRepository;
+use App\Services\VoucherStockAllocationService;
 use App\Models\VoucherSale;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -16,17 +17,20 @@ class VoucherSaleService
     protected $voucherSaleItemRepository;
     protected $businessRepository;
     protected $voucherProductRepository;
+    protected $allocationService;
 
     public function __construct(
         VoucherSaleRepository $voucherSaleRepository,
         VoucherSaleItemRepository $voucherSaleItemRepository,
         BusinessRepository $businessRepository,
-        IspVoucherProductRepository $voucherProductRepository
+        IspVoucherProductRepository $voucherProductRepository,
+        VoucherStockAllocationService $allocationService
     ) {
         $this->voucherSaleRepository = $voucherSaleRepository;
         $this->voucherSaleItemRepository = $voucherSaleItemRepository;
         $this->businessRepository = $businessRepository;
         $this->voucherProductRepository = $voucherProductRepository;
+        $this->allocationService = $allocationService;
     }
 
     public function getSalesByBusiness(string $businessPublicId, int $tenantId)
@@ -86,9 +90,22 @@ class VoucherSaleService
                 throw new \Exception("Voucher product not found.");
             }
 
-            // Check stock availability
-            if ($voucherProduct->stock < $item['quantity']) {
-                throw new \Exception("Insufficient stock for voucher: {$voucherProduct->name}. Available: {$voucherProduct->stock}, Requested: {$item['quantity']}");
+            // Check stock availability in central inventory (only if NOT selling from allocation)
+            $sourceType = $data['source_type'] ?? 'own_stock';
+            if ($sourceType !== 'allocated_stock') {
+                if ($voucherProduct->stock < $item['quantity']) {
+                    throw new \Exception("Insufficient stock for voucher: {$voucherProduct->name}. Available: {$voucherProduct->stock}, Requested: {$item['quantity']}");
+                }
+            }
+
+            // Check allocation availability for finance user
+            $hasAllocation = $this->allocationService->validateAllocationAvailability(
+                $userId,
+                $item['voucher_product_id'],
+                $item['quantity']
+            );
+            if (!$hasAllocation) {
+                throw new \Exception("Insufficient allocation for voucher: {$voucherProduct->name}. Please request more stock.");
             }
 
             $unitPrice = $item['unit_price'] ?? $voucherProduct->price;
@@ -97,9 +114,11 @@ class VoucherSaleService
 
             $itemsToCreate[] = [
                 'voucher_product_id' => $item['voucher_product_id'],
-                'quantity' => $item['quantity'],
+                'qty' => $item['quantity'],
                 'unit_price' => $unitPrice,
                 'subtotal' => $subtotal,
+                'owner_share' => $voucherProduct->owner_share * $item['quantity'],
+                'reseller_fee' => $voucherProduct->reseller_fee * $item['quantity'],
             ];
         }
 
@@ -120,33 +139,53 @@ class VoucherSaleService
             }
         }
 
-        return DB::transaction(function () use ($data, $business, $tenantId, $userId, $totalAmount, $paidAmount, $remainingAmount, $itemsToCreate) {
+        // Create sale data
+        $saleData = [
+            'public_id' => (string) Str::uuid(),
+            'tenant_id' => $tenantId,
+            'business_id' => $business->id,
+            'channel_type' => $data['channel_type'],
+            'outlet_id' => $data['outlet_id'] ?? null,
+            'reseller_id' => $data['reseller_id'] ?? null,
+            'source_type' => $data['source_type'] ?? 'own_stock', // Default to own_stock if not provided
+            'source_id' => $data['source_id'] ?? $userId,
+            'sold_to_type' => $data['sold_to_type'] ?? ($data['channel_type'] === 'admin' ? 'end_user' : $data['channel_type']),
+            'sold_to_id' => $data['sold_to_id'] ?? ($data['outlet_id'] ?? $data['reseller_id']),
+            'customer_name' => $data['customer_name'] ?? null,
+            'customer_phone' => $data['customer_phone'] ?? null,
+            'sold_by_user_id' => $userId,
+            'total_amount' => $totalAmount,
+            'payment_method' => $data['payment_method'],
+            'paid_amount' => $paidAmount,
+            'remaining_amount' => $remainingAmount,
+            'status' => 'completed',
+            'sold_at' => now(),
+        ];
+
+        return DB::transaction(function () use ($saleData, $tenantId, $userId, $itemsToCreate) {
             // Create sale
-            $sale = $this->voucherSaleRepository->create([
-                'public_id' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
-                'business_id' => $business->id,
-                'channel_type' => $data['channel_type'],
-                'outlet_id' => $data['outlet_id'] ?? null,
-                'reseller_id' => $data['reseller_id'] ?? null,
-                'sold_by_user_id' => $userId,
-                'total_amount' => $totalAmount,
-                'payment_method' => $data['payment_method'],
-                'paid_amount' => $paidAmount,
-                'remaining_amount' => $remainingAmount,
-                'status' => 'completed',
-                'sold_at' => now(),
-            ]);
+            $sale = $this->voucherSaleRepository->create($saleData);
 
             // Create sale items and deduct stock
             foreach ($itemsToCreate as $itemData) {
                 $itemData['voucher_sale_id'] = $sale->id;
                 $this->voucherSaleItemRepository->createMultiple([$itemData]);
 
-                // Deduct stock
-                $voucherProduct = $this->voucherProductRepository->findById($itemData['voucher_product_id'], $tenantId);
-                $voucherProduct->stock -= $itemData['quantity'];
-                $voucherProduct->save();
+                // Deduct stock from central inventory (only if NOT selling from allocation)
+                if ($saleData['source_type'] !== 'allocated_stock') {
+                    $voucherProduct = $this->voucherProductRepository->findById($itemData['voucher_product_id'], $tenantId);
+                    $voucherProduct->stock -= $itemData['qty'];
+                    $voucherProduct->save();
+                }
+
+                // Deduct from allocation if source is allocated_stock
+                if ($saleData['source_type'] === 'allocated_stock') {
+                    $this->allocationService->recordSale(
+                        $userId,
+                        $itemData['voucher_product_id'],
+                        $itemData['qty']
+                    );
+                }
             }
 
             // TODO: Create journal entries

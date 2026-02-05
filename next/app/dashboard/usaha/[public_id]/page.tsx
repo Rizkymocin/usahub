@@ -32,6 +32,7 @@ import Outlets from "./Outlets"
 import Resellers from "./Resellers"
 import Topups from "./Topups"
 import Vouchers from "./Vouchers"
+import VoucherStockTab from "../../admin/usaha/[public_id]/VoucherStockTab"
 
 export default function DetailUsahaPage() {
     const { public_id } = useParams()

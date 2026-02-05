@@ -61,13 +61,14 @@ export default function UserPage() {
     // Define roles based on business category
     const availableRoles = useMemo(() => {
         const baseRoles = [
-            { value: 'business_admin', label: 'Business Admin' },
+            { value: 'business_admin', label: 'Business Admins' },
             { value: 'kasir', label: 'Kasir' },
         ]
 
         if (business?.category === 'isp') {
             return [
                 { value: 'business_admin', label: 'Business Admin' },
+                { value: 'kasir', label: 'Kasir' },
                 { value: 'finance', label: 'Finance' },
                 { value: 'teknisi_maintenance', label: 'Teknisi Maintenance' },
                 { value: 'teknisi_pasang_baru', label: 'Teknisi Pasang Baru' },

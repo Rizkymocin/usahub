@@ -29,7 +29,6 @@ class IspReseller extends Model
     ];
 
     protected $hidden = [
-        'id',
         'tenant_id',
         'outlet_id',
     ];

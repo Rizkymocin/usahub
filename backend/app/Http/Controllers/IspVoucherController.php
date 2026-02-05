@@ -24,6 +24,8 @@ class IspVoucherController extends Controller
             return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
         }
 
+        $products->makeVisible(['id']);
+
         return response()->json(['success' => true, 'data' => $products]);
     }
 

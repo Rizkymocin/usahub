@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import SuperAdminDashboard from "../components/SuperAdminDashboard"
 import OwnerDashboard from "../components/OwnerDashboard"
 import BusinessAdminDashboard from "../components/BusinessAdminDashboard"
+import KasirDashboard from "../components/KasirDashboard"
 
 export default function DashboardPage() {
     const [role, setRole] = useState<string | null>(null)
@@ -36,6 +37,8 @@ export default function DashboardPage() {
                     setRole('super_admin')
                 } else if (roleNames.includes('business_admin')) { // Assuming this role exists
                     setRole('business_admin')
+                } else if (roleNames.includes('kasir')) { // Assuming this role exists
+                    setRole('kasir')
                 } else {
                     setRole('guest')
                 }
@@ -60,6 +63,10 @@ export default function DashboardPage() {
 
     if (role === 'business_admin') {
         return <BusinessAdminDashboard />
+    }
+
+    if (role === 'kasir') {
+        return <KasirDashboard />
     }
 
     return (

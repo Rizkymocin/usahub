@@ -6,6 +6,7 @@ import { useStockRequestStore, StockRequest } from "@/stores/stock-request.store
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Loader2, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle, Eye } from "lucide-react"
+import { RefreshButton } from "@/components/ui/refresh-button"
 import {
     Dialog,
     DialogContent,
@@ -63,6 +64,12 @@ export default function Stock() {
             fetchRequests(id)
         }
     }, [public_id, fetchRequests])
+
+    const reloadTable = () => {
+        if (!public_id) return
+        const id = Array.isArray(public_id) ? public_id[0] : public_id
+        return fetchRequests(id, undefined, true) // Force refresh
+    }
 
     const handleApprove = async () => {
         if (!selectedRequest || !public_id) return
@@ -239,6 +246,7 @@ export default function Stock() {
                             <SelectItem value="rejected">Ditolak</SelectItem>
                         </SelectContent>
                     </Select>
+                    <RefreshButton onRefresh={reloadTable} />
                 </div>
 
                 <div className="rounded-md border">

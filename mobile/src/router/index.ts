@@ -41,13 +41,18 @@ const router = createRouter({
                     path: 'voucher',
                     name: 'voucher',
                     component: VoucherView
+                },
+                {
+                    path: 'sales',
+                    name: 'sales',
+                    component: () => import('@/views/SalesView.vue')
                 }
             ]
         }
     ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
     const auth = useAuthStore()
 
     if (to.meta.requiresAuth && !auth.isAuthenticated) {

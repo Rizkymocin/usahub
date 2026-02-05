@@ -9,13 +9,15 @@ class VoucherSaleItem extends Model
     protected $fillable = [
         'voucher_sale_id',
         'voucher_product_id',
-        'quantity',
+        'qty',
         'unit_price',
         'subtotal',
+        'owner_share',
+        'reseller_fee',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'qty' => 'integer',
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];

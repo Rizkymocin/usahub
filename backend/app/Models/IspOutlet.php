@@ -31,7 +31,6 @@ class IspOutlet extends Model
     ];
 
     protected $hidden = [
-        'id',
         'tenant_id',
         'business_id',
         'user_id',

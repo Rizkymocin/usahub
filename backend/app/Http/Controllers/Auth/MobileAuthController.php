@@ -54,6 +54,7 @@ class MobileAuthController extends Controller
                 'user' => array_merge($user->toArray(), [
                     'roles' => $roles,
                     'business' => $business,
+                    'business_public_id' => $business ? $business->public_id : null,
                 ]),
                 'token' => $token,
             ],
@@ -81,7 +82,7 @@ class MobileAuthController extends Controller
 
         // Find business from business_user table
         $business = null;
-        $businessUser = DB::table('business_user')
+        $businessUser = DB::table('business_users')
             ->where('user_id', $user->id)
             ->first();
 
@@ -94,6 +95,7 @@ class MobileAuthController extends Controller
             'data' => array_merge($user->toArray(), [
                 'roles' => $roles,
                 'business' => $business,
+                'business_public_id' => $business ? $business->public_id : null,
             ]),
         ]);
     }

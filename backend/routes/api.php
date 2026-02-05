@@ -74,4 +74,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'store']);
     Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}', [\App\Http\Controllers\VoucherSaleController::class, 'show']);
     Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/payment', [\App\Http\Controllers\VoucherSaleController::class, 'addPayment']);
+
+    // Voucher Stock Allocation Routes
+    Route::get('/businesses/{public_id}/voucher-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'index']);
+    Route::get('/businesses/{public_id}/voucher-allocations/my-stock', [\App\Http\Controllers\VoucherStockAllocationController::class, 'myStock']);
+    Route::post('/businesses/{public_id}/voucher-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'store']);
+    Route::patch('/businesses/{public_id}/voucher-allocations/{allocation}/close', [\App\Http\Controllers\VoucherStockAllocationController::class, 'close']);
+
+    // Voucher Stock Management Routes (Admin manages own stock)
+    Route::get('/businesses/{public_id}/voucher-stocks', [\App\Http\Controllers\IspVoucherStockController::class, 'index']);
+    Route::get('/businesses/{public_id}/voucher-stocks/summary', [\App\Http\Controllers\IspVoucherStockController::class, 'summary']);
+    Route::post('/businesses/{public_id}/voucher-stocks', [\App\Http\Controllers\IspVoucherStockController::class, 'store']);
+    Route::put('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'update']);
+    Route::delete('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'destroy']);
 });

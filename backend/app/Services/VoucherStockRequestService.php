@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\VoucherStockRequestRepository;
 use App\Repositories\VoucherStockRequestItemRepository;
+use App\Repositories\VoucherStockAllocationRepository;
 use App\Models\Business;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,13 +15,19 @@ class VoucherStockRequestService
 {
     private VoucherStockRequestRepository $requestRepo;
     private VoucherStockRequestItemRepository $itemRepo;
+    private VoucherStockAllocationRepository $allocationRepo;
+    private IspVoucherStockService $stockService;
 
     public function __construct(
         VoucherStockRequestRepository $requestRepo,
-        VoucherStockRequestItemRepository $itemRepo
+        VoucherStockRequestItemRepository $itemRepo,
+        VoucherStockAllocationRepository $allocationRepo,
+        IspVoucherStockService $stockService
     ) {
         $this->requestRepo = $requestRepo;
         $this->itemRepo = $itemRepo;
+        $this->allocationRepo = $allocationRepo;
+        $this->stockService = $stockService;
     }
 
     /**
@@ -132,9 +139,53 @@ class VoucherStockRequestService
         }
 
         $user = $request->user();
-        $stockRequest->approve($user, $note);
 
-        return $this->requestRepo->findById($requestId);
+        return DB::transaction(function () use ($stockRequest, $user, $note, $requestId) {
+            // Step 1: Validate stock availability for all items
+            foreach ($stockRequest->items as $item) {
+                $available = $this->stockService->validateStockAvailability(
+                    $stockRequest->business_id,
+                    $item->voucher_product_id,
+                    $item->qty
+                );
+
+                if (!$available) {
+                    $productName = $item->voucherProduct->name ?? "Product #{$item->voucher_product_id}";
+                    throw new \Exception("Insufficient stock for {$productName}. Cannot approve request.");
+                }
+            }
+
+            // Step 2: Decrement stock for each item
+            foreach ($stockRequest->items as $item) {
+                $this->stockService->decrementStock(
+                    $stockRequest->business_id,
+                    $item->voucher_product_id,
+                    $item->qty
+                );
+            }
+
+            // Step 3: Approve the request
+            $stockRequest->approve($user, $note);
+
+            // Step 4: Create allocations for each item
+            foreach ($stockRequest->items as $item) {
+                $this->allocationRepo->create([
+                    'tenant_id' => $stockRequest->tenant_id,
+                    'business_id' => $stockRequest->business_id,
+                    'allocated_to_user_id' => $stockRequest->requested_by_user_id,
+                    'voucher_product_id' => $item->voucher_product_id,
+                    'qty_allocated' => $item->qty,
+                    'qty_sold' => 0,
+                    'source_type' => 'request',
+                    'source_id' => $stockRequest->id,
+                    'status' => 'active',
+                    'allocated_at' => now(),
+                    'allocated_by_user_id' => $user->id,
+                ]);
+            }
+
+            return $this->requestRepo->findById($requestId);
+        });
     }
 
     /**

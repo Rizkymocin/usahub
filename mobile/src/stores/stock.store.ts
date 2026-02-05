@@ -65,9 +65,22 @@ export interface CreateStockRequestData {
     request_note?: string;
 }
 
+export interface AllocationStock {
+    voucher_product_id: number;
+    voucher_product: {
+        id: number;
+        name: string;
+        selling_price: number;
+    };
+    total_allocated: number;
+    total_sold: number;
+    qty_available: number;
+}
+
 export const useStockStore = defineStore('stock', () => {
     const requests = ref<StockRequest[]>([]);
     const currentRequest = ref<StockRequest | null>(null);
+    const myStock = ref<AllocationStock[]>([]);
     const loading = ref(false);
     const error = ref<string | null>(null);
 
@@ -88,6 +101,29 @@ export const useStockStore = defineStore('stock', () => {
             }
         } catch (err: any) {
             error.value = err.response?.data?.message || err.message || 'Failed to fetch stock requests';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    /**
+     * Fetch finance user's stock allocations
+     */
+    async function fetchMyStock(businessPublicId: string) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await axios.get(`/businesses/${businessPublicId}/voucher-allocations/my-stock`);
+
+            if (response.data.data) {
+                myStock.value = response.data.data;
+                return response.data.data;
+            } else {
+                throw new Error(response.data.message || 'Failed to fetch stock allocations');
+            }
+        } catch (err: any) {
+            error.value = err.response?.data?.message || err.message || 'Failed to fetch stock allocations';
             throw err;
         } finally {
             loading.value = false;
@@ -227,11 +263,13 @@ export const useStockStore = defineStore('stock', () => {
         // State
         requests,
         currentRequest,
+        myStock,
         loading,
         error,
 
         // Actions
         fetchRequests,
+        fetchMyStock,
         fetchRequestDetail,
         createRequest,
         approveRequest,

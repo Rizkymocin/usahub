@@ -128,21 +128,4 @@ class IspOutletService
 
         return $deleteOutlet && $deleteUser;
     }
-
-    public function topupOutlet(int $outletId, int $tenantId, float $amount): IspOutletTopup
-    {
-        // Verify outlet exists and belongs to tenant
-        $outlet = $this->repository->findById($outletId, $tenantId);
-        if (!$outlet) {
-            throw new \Exception("Outlet not found or access denied.");
-        }
-
-        // Create topup record
-        return $this->topupRepository->create([
-            'outlet_id' => $outletId,
-            'amount' => $amount,
-            'status' => 'pending', // Can be approved later
-            'created_at' => now(),
-        ]);
-    }
 }

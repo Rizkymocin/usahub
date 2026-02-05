@@ -15,7 +15,9 @@ class IspVoucherProductRepository
     public function findById(int $id, int $tenantId): ?IspVoucherProduct
     {
         return IspVoucherProduct::where('id', $id)
-            ->where('tenant_id', $tenantId)
+            ->whereHas('business', function ($query) use ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            })
             ->first();
     }
 

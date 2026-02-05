@@ -1,8 +1,12 @@
 <template>
   <div class="min-h-screen bg-slate-50 pb-24">
     <!-- Header Section -->
-    <header class="bg-gradient-to-r from-primary to-sky-400 text-primary-foreground pt-12 pb-24 px-6 rounded-b-[2.5rem] relative overflow-hidden">
-      <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
+    <!-- Header Section -->
+    <header class="relative pt-12 pb-24 px-6 z-10 text-primary-foreground">
+      <!-- Background & Shapes -->
+      <div class="absolute inset-0 bg-gradient-to-r from-primary to-sky-400 rounded-b-[2.5rem] overflow-hidden -z-10">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl"></div>
+      </div>
       
       <div class="relative z-10 flex justify-between items-center mb-6">
         <div>
@@ -15,8 +19,41 @@
         </button>
       </div>
 
-      <!-- Balance Card (Floating) -->
-      <div class="absolute left-6 right-6 -bottom-16 bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-5 flex flex-col gap-4 border border-slate-100">
+      <!-- Finance Stock Summary (Floating) -->
+      <div v-if="isFinance" class="absolute left-6 right-6 -bottom-16 bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-4 border border-slate-100 flex flex-col justify-between min-h-[140px]">
+        
+        <!-- Main: Available Stock -->
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Voucher Tersedia</p>
+            <div v-if="stockStore.loading" class="h-8 w-24 bg-slate-200 rounded animate-pulse"></div>
+            <h2 v-else class="text-3xl font-bold text-slate-900 leading-none">{{ totalAvailable }} <span class="text-sm font-medium text-slate-500">Pcs</span></h2>
+          </div>
+          <div class="bg-orange-50 p-2.5 rounded-xl">
+            
+            <TicketIcon class="w-6 h-6 text-orange-600" />
+          </div>
+        </div>
+
+        <!-- Sub Stats: Allocation & Sold -->
+        <div class="grid grid-cols-2 gap-3 mt-3">
+           <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+              <p class="text-[10px] text-slate-500 font-medium mb-0.5">Total Alokasi</p>
+              <p v-if="stockStore.loading" class="h-4 w-12 bg-slate-200 rounded animate-pulse"></p>
+              <p v-else class="text-sm font-bold text-slate-700">{{ totalAllocated }}</p>
+           </div>
+           
+           <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+              <p class="text-[10px] text-slate-500 font-medium mb-0.5">Total Terjual</p>
+              <p v-if="stockStore.loading" class="h-4 w-12 bg-slate-200 rounded animate-pulse"></p>
+              <p v-else class="text-sm font-bold text-green-600">{{ totalSold }}</p>
+           </div>
+        </div>
+
+      </div>
+
+      <!-- Balance Card (Floating) for Non-Finance -->
+      <div v-else class="absolute left-6 right-6 -bottom-16 bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-5 flex flex-col gap-4 border border-slate-100">
         <div class="flex justify-between items-start">
           <div>
             <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Saldo Deposit</p>
@@ -104,16 +141,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watchEffect } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
+import { useStockStore } from '@/stores/stock.store';
 import { useRouter } from 'vue-router';
 import { 
   Bell, Wallet, Ticket, Clock, 
   FileText, Wrench, UserPlus, ClipboardList, 
-  AlertCircle, Settings, CheckCircle 
+  AlertCircle, Settings, CheckCircle, Package, 
+  TicketIcon
 } from 'lucide-vue-next';
 
 const auth = useAuthStore();
+const stockStore = useStockStore();
 const router = useRouter();
 const user = computed(() => auth.user);
 
@@ -125,6 +165,30 @@ const formatCurrency = (value: number) => {
 const userRoles = computed(() => {
   if (!user.value?.roles || !Array.isArray(user.value.roles)) return [];
   return user.value.roles.map((r: any) => r.name || r);
+});
+
+const isFinance = computed(() => userRoles.value.includes('finance'));
+
+const totalAllocated = computed(() => {
+  return stockStore.myStock.reduce((acc, item) => acc + Number(item.total_allocated), 0);
+});
+
+const totalSold = computed(() => {
+  return stockStore.myStock.reduce((acc, item) => acc + Number(item.total_sold), 0);
+});
+
+const totalAvailable = computed(() => {
+  return totalAllocated.value - totalSold.value;
+});
+
+watchEffect(async () => {
+  if (isFinance.value && user.value?.business_public_id) {
+    try {
+      await stockStore.fetchMyStock(user.value.business_public_id);
+    } catch (error) {
+      console.error('HomeView: Failed to fetch stock summary:', error);
+    }
+  }
 });
 
 // Role-based menu configuration

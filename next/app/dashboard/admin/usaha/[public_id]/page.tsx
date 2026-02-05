@@ -42,6 +42,7 @@ import Topups from "./Topups"
 import Stock from "./Stock"
 import Vouchers from "./Vouchers"
 import VoucherSales from "./VoucherSales"
+import VoucherStockTab from "./VoucherStockTab"
 
 
 export default function DetailUsahaAdminPage() {
@@ -80,14 +81,11 @@ export default function DetailUsahaAdminPage() {
                 <TabsList className="w-full bg-primary text-primary-foreground">
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="account">Akun (COA)</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="users">Pengguna</TabsTrigger>
-                    {isMounted && business?.category === 'isp' && (
-                        <>
-                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>
-                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>
-                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="stocks">Permintaan Stok Voucher</TabsTrigger>
-                            <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="vouchers">Voucher</TabsTrigger>
-                        </>
-                    )}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="stocks">Permintaan Stok Voucher</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="vouchers">Voucher</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="voucher-stocks">Stok Voucher</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">
@@ -96,14 +94,12 @@ export default function DetailUsahaAdminPage() {
                 <TabsContent value="users">
                     <User />
                 </TabsContent >
-                {isMounted && business?.category === 'isp' && (
-                    <>
-                        <TabsContent value="outlets"><Outlets /></TabsContent>
-                        <TabsContent value="resellers"><Resellers /></TabsContent>
-                        <TabsContent value="stocks"><Stock /></TabsContent>
-                        <TabsContent value="vouchers"><Vouchers /></TabsContent>
-                    </>
-                )}
+
+                {isMounted && business?.category === 'isp' && <TabsContent value="outlets"><Outlets /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="resellers"><Resellers /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="stocks"><Stock /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="vouchers"><Vouchers /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="voucher-stocks"><VoucherStockTab /></TabsContent>}
             </Tabs >
         </div >
     )
