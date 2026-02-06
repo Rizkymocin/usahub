@@ -43,6 +43,8 @@ import Stock from "./Stock"
 import Vouchers from "./Vouchers"
 import VoucherSales from "./VoucherSales"
 import VoucherStockTab from "./VoucherStockTab"
+import MaintenanceTab from "./MaintenanceTab"
+import VoucherAllocations from "./VoucherAllocations"
 
 
 export default function DetailUsahaAdminPage() {
@@ -83,9 +85,8 @@ export default function DetailUsahaAdminPage() {
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="users">Pengguna</TabsTrigger>
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>}
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>}
-                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="stocks">Permintaan Stok Voucher</TabsTrigger>}
-                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="vouchers">Voucher</TabsTrigger>}
-                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="voucher-stocks">Stok Voucher</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="voucher-main">Voucher</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="maintenance">Gangguan</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">
@@ -97,9 +98,27 @@ export default function DetailUsahaAdminPage() {
 
                 {isMounted && business?.category === 'isp' && <TabsContent value="outlets"><Outlets /></TabsContent>}
                 {isMounted && business?.category === 'isp' && <TabsContent value="resellers"><Resellers /></TabsContent>}
-                {isMounted && business?.category === 'isp' && <TabsContent value="stocks"><Stock /></TabsContent>}
-                {isMounted && business?.category === 'isp' && <TabsContent value="vouchers"><Vouchers /></TabsContent>}
-                {isMounted && business?.category === 'isp' && <TabsContent value="voucher-stocks"><VoucherStockTab /></TabsContent>}
+
+                {isMounted && business?.category === 'isp' && (
+                    <TabsContent value="voucher-main">
+                        <Tabs defaultValue="vouchers" className="w-full">
+                            <div className="mb-4">
+                                <TabsList className="bg-slate-100 p-1 rounded-lg">
+                                    <TabsTrigger value="vouchers">Daftar Voucher</TabsTrigger>
+                                    <TabsTrigger value="voucher-stocks">Stok Voucher</TabsTrigger>
+                                    <TabsTrigger value="stocks">Permintaan Stok</TabsTrigger>
+                                    <TabsTrigger value="allocations">Alokasi</TabsTrigger>
+                                </TabsList>
+                            </div>
+                            <TabsContent value="vouchers"><Vouchers /></TabsContent>
+                            <TabsContent value="voucher-stocks"><VoucherStockTab /></TabsContent>
+                            <TabsContent value="stocks"><Stock /></TabsContent>
+                            <TabsContent value="allocations"><VoucherAllocations /></TabsContent>
+                        </Tabs>
+                    </TabsContent>
+                )}
+
+                {isMounted && business?.category === 'isp' && <TabsContent value="maintenance"><MaintenanceTab /></TabsContent>}
             </Tabs >
         </div >
     )

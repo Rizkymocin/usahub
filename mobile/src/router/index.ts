@@ -51,6 +51,16 @@ const router = createRouter({
                     path: 'debt-collection',
                     name: 'debt-collection',
                     component: () => import('@/views/DebtCollectionView.vue')
+                },
+                {
+                    path: 'maintenance',
+                    name: 'maintenance',
+                    component: () => import('@/views/Maintenance/MaintenanceListView.vue')
+                },
+                {
+                    path: 'maintenance/:id',
+                    name: 'maintenance-detail',
+                    component: () => import('@/views/Maintenance/MaintenanceDetailView.vue')
                 }
             ]
         }

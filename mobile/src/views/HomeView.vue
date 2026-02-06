@@ -148,7 +148,7 @@ import { useRouter } from 'vue-router';
 import { 
   Bell, Wallet, Ticket, Clock, 
   FileText, Wrench, UserPlus, ClipboardList, 
-  AlertCircle, Settings, CheckCircle, Package, 
+  AlertCircle, Settings, CheckCircle, 
   TicketIcon
 } from 'lucide-vue-next';
 
@@ -199,7 +199,6 @@ const roleMenus: Record<string, Array<{ label: string; icon: any; bgClass: strin
     { label: 'Penagihan', icon: ClipboardList, bgClass: 'bg-blue-50', textClass: 'text-blue-600', route: '/debt-collection' },
   ],
   teknisi_maintenance: [
-    { label: 'Laporan Gangguan', icon: AlertCircle, bgClass: 'bg-red-50', textClass: 'text-red-600', route: '/reports' },
     { label: 'Pemeliharaan', icon: Wrench, bgClass: 'bg-purple-50', textClass: 'text-purple-600', route: '/maintenance' },
   ],
   teknisi_pasang_baru: [

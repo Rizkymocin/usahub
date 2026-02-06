@@ -88,4 +88,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/voucher-stocks', [\App\Http\Controllers\IspVoucherStockController::class, 'store']);
     Route::put('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'update']);
     Route::delete('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'destroy']);
+
+    // Maintenance / Gangguan Routes
+    Route::get('/businesses/{public_id}/maintenance-issues', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'index']);
+    Route::post('/businesses/{public_id}/maintenance-issues', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'store']);
+    Route::get('/businesses/{public_id}/maintenance-issues/{issue_public_id}', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'show']);
+    Route::put('/businesses/{public_id}/maintenance-issues/{issue_public_id}', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'update']);
+
+    // Maintenance Inventory
+    Route::get('/businesses/{public_id}/maintenance-items', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'items']);
+    Route::post('/businesses/{public_id}/maintenance-items', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'storeItem']);
+
+    // Maintenance Logs (Technician updates)
+    Route::post('/businesses/{public_id}/maintenance-issues/{issue_public_id}/logs', [\App\Http\Controllers\IspMaintenanceLogController::class, 'store']);
 });
