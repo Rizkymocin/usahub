@@ -11,6 +11,7 @@
   "dependencies": {
     "@capacitor/android": "^8.0.2",
     "@capacitor/core": "^8.0.2",
+    "@headlessui/vue": "^1.7.23",
     "@tailwindcss/vite": "^4.1.18",
     "@vueuse/core": "^14.2.0",
     "axios": "^1.13.4",

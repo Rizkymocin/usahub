@@ -196,7 +196,7 @@ const roleMenus: Record<string, Array<{ label: string; icon: any; bgClass: strin
   finance: [
     { label: 'Voucher', icon: Ticket, bgClass: 'bg-orange-50', textClass: 'text-orange-600', route: '/voucher' },
     { label: 'Penjualan', icon: FileText, bgClass: 'bg-green-50', textClass: 'text-green-600', route: '/sales' },
-    { label: 'Penagihan', icon: ClipboardList, bgClass: 'bg-blue-50', textClass: 'text-blue-600', route: '/billing' },
+    { label: 'Penagihan', icon: ClipboardList, bgClass: 'bg-blue-50', textClass: 'text-blue-600', route: '/debt-collection' },
   ],
   teknisi_maintenance: [
     { label: 'Laporan Gangguan', icon: AlertCircle, bgClass: 'bg-red-50', textClass: 'text-red-600', route: '/reports' },

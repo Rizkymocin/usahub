@@ -77,11 +77,25 @@ class VoucherSale extends Model
         return 'unpaid';
     }
 
+    // Relationships
+    public function payments()
+    {
+        return $this->hasMany(VoucherSalePayment::class);
+    }
+
     // Method to add payment
-    public function addPayment(float $amount)
+    public function addPayment(float $amount, $userId, $method = 'cash', $note = null)
     {
         $this->paid_amount += $amount;
         $this->remaining_amount = max(0, $this->total_amount - $this->paid_amount);
         $this->save();
+
+        $this->payments()->create([
+            'amount' => $amount,
+            'payment_method' => $method,
+            'note' => $note,
+            'collected_by_user_id' => $userId,
+            'paid_at' => now(),
+        ]);
     }
 }

@@ -167,6 +167,44 @@ export const useSaleStore = defineStore('sale', () => {
         }
     }
 
+    const debts = ref<any[]>([]);
+
+    async function fetchDebts() {
+        if (!auth.user?.business_public_id) return;
+        try {
+            const response = await axios.get(`/businesses/${auth.user.business_public_id}/voucher-sales`);
+            if (response.data.success) {
+                // Filter for debts on client side for now
+                debts.value = response.data.data.filter((sale: any) => Number(sale.remaining_amount) > 0);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function submitDebtPayment(payload: { salePublicId: string, amount: number, note?: string }) {
+        if (!auth.user?.business_public_id) throw new Error("Business ID not found");
+
+        try {
+            const response = await axios.post(
+                `/businesses/${auth.user.business_public_id}/voucher-sales/${payload.salePublicId}/payments`,
+                {
+                    amount: payload.amount,
+                    note: payload.note,
+                    payment_method: 'cash' // Default for collection
+                }
+            );
+
+            if (response.data.success) {
+                return response.data;
+            } else {
+                throw new Error(response.data.message);
+            }
+        } catch (err: any) {
+            throw err;
+        }
+    }
+
     return {
         items,
         channelType,
@@ -181,10 +219,13 @@ export const useSaleStore = defineStore('sale', () => {
         totalAmount,
         remainingAmount,
         canCheckout,
+        debts,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
-        submitSale
+        submitSale,
+        fetchDebts,
+        submitDebtPayment
     };
 });

@@ -73,7 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'index']);
     Route::post('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'store']);
     Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}', [\App\Http\Controllers\VoucherSaleController::class, 'show']);
-    Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/payment', [\App\Http\Controllers\VoucherSaleController::class, 'addPayment']);
+    Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}/payments', [\App\Http\Controllers\VoucherSalePaymentController::class, 'index']);
+    Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/payments', [\App\Http\Controllers\VoucherSalePaymentController::class, 'store']);
 
     // Voucher Stock Allocation Routes
     Route::get('/businesses/{public_id}/voucher-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'index']);

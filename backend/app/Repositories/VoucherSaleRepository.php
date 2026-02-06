@@ -54,13 +54,13 @@ class VoucherSaleRepository
         return $sale->delete();
     }
 
-    public function addPayment(int $id, float $amount): bool
+    public function addPayment(int $id, float $amount, $userId, $method = 'cash', $note = null): bool
     {
         $sale = VoucherSale::find($id);
         if (!$sale) {
             return false;
         }
-        $sale->addPayment($amount);
+        $sale->addPayment($amount, $userId, $method, $note);
         return true;
     }
 }

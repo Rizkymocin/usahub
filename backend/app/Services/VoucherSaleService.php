@@ -72,8 +72,23 @@ class VoucherSaleService
             }
             $data['outlet_id'] = null;
         } else {
-            $data['outlet_id'] = null;
-            $data['reseller_id'] = null;
+            // channel_type === 'admin'
+            // Check sold_to_type to determine if we need to link specific entity
+            if (isset($data['sold_to_type'])) {
+                if ($data['sold_to_type'] === 'outlet') {
+                    $data['outlet_id'] = $data['sold_to_id'] ?? ($data['outlet_id'] ?? null);
+                    $data['reseller_id'] = null;
+                } elseif ($data['sold_to_type'] === 'reseller') {
+                    $data['reseller_id'] = $data['sold_to_id'] ?? ($data['reseller_id'] ?? null);
+                    $data['outlet_id'] = null;
+                } else {
+                    $data['outlet_id'] = null;
+                    $data['reseller_id'] = null;
+                }
+            } else {
+                $data['outlet_id'] = null;
+                $data['reseller_id'] = null;
+            }
         }
 
         // Validate items and calculate total
@@ -196,7 +211,7 @@ class VoucherSaleService
         });
     }
 
-    public function addPayment(string $salePublicId, float $amount, string $businessPublicId, int $tenantId): ?VoucherSale
+    public function addPayment(string $salePublicId, float $amount, string $businessPublicId, int $tenantId, int $userId, $method = 'cash', $note = null): ?VoucherSale
     {
         $business = $this->businessRepository->findByIdPublicId($businessPublicId, $tenantId);
         if (!$business) {
@@ -216,8 +231,8 @@ class VoucherSaleService
             throw new \Exception("Payment amount exceeds remaining balance.");
         }
 
-        return DB::transaction(function () use ($sale, $amount) {
-            $this->voucherSaleRepository->addPayment($sale->id, $amount);
+        return DB::transaction(function () use ($sale, $amount, $userId, $method, $note) {
+            $this->voucherSaleRepository->addPayment($sale->id, $amount, $userId, $method, $note);
 
             // TODO: Create journal entry for payment received
             // - Debit: Cash

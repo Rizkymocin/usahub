@@ -26,7 +26,7 @@
 
         <!-- Custom Stepper -->
         <div class="flex items-center justify-between px-2 gap-2">
-          <div v-for="(step, index) in steps" :key="index" class="flex-1 flex flex-col gap-1.5">
+          <div v-for="(_, index) in steps" :key="index" class="flex-1 flex flex-col gap-1.5">
             <div class="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden relative">
               <div 
                 class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
@@ -339,6 +339,23 @@
               </div>
             </button>
           </div>
+
+          <!-- Paid Amount Input for Credit -->
+          <div v-if="saleStore.paymentMethod === 'credit'" class="mt-4 animate-in fade-in slide-in-from-top-2">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Uang Muka / DP (Opsional)</label>
+            <div class="relative group mt-2">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold group-focus-within:text-indigo-500 transition-colors">Rp</span>
+              <input 
+                v-model.number="saleStore.paidAmount"
+                type="number" 
+                placeholder="0"
+                class="w-full pl-10 pr-4 py-4 bg-white rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-300"
+              />
+            </div>
+            <p class="text-[10px] text-slate-500 mt-2 px-1">
+              Sisa tagihan: <span class="font-bold text-indigo-600">Rp {{ formatCurrency(Math.max(0, saleStore.totalAmount - saleStore.paidAmount)) }}</span>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -471,6 +488,16 @@ watch(() => saleStore.soldToType, () => {
   saleStore.customerPhone = '';
   searchQuery.value = '';
 });
+
+// Update paid amount based on payment method
+watch([() => saleStore.paymentMethod, () => saleStore.totalAmount], ([method, total], [oldMethod]) => {
+  if (method === 'cash') {
+    saleStore.paidAmount = total;
+  } else if (method === 'credit' && method !== oldMethod) {
+    saleStore.paidAmount = 0;
+  }
+}, { immediate: true });
+
 
 // Helper for UI display
 const getRecipientName = computed(() => {
