@@ -227,7 +227,15 @@ class VoucherStockRequestService
             throw new \Exception("Business not found");
         }
 
-        return $this->requestRepo->findByBusiness($business->id, $status);
+        $user = $request->user();
+        $userId = null;
+
+        // If user is NOT an admin/owner, restrict to their own requests
+        if (!$user->hasAnyRole(['superadmin', 'owner', 'business_admin', 'admin'])) {
+            $userId = $user->id;
+        }
+
+        return $this->requestRepo->findByBusiness($business->id, $status, $userId);
     }
 
     /**

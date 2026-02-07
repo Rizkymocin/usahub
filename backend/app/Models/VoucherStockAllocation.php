@@ -21,6 +21,7 @@ class VoucherStockAllocation extends Model
         'voucher_product_id',
         'qty_allocated',
         'qty_sold',
+        'qty_damaged',
         'source_type',
         'source_id',
         'status',
@@ -31,10 +32,11 @@ class VoucherStockAllocation extends Model
     ];
 
     protected $casts = [
-        'allocated_at' => 'datetime',
-        'closed_at' => 'datetime',
         'qty_allocated' => 'integer',
         'qty_sold' => 'integer',
+        'qty_damaged' => 'integer',
+        'allocated_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
 
     /*

@@ -7,12 +7,16 @@ use Illuminate\Database\Eloquent\Collection;
 
 class VoucherSaleRepository
 {
-    public function findByBusiness(int $businessId): Collection
+    public function findByBusiness(int $businessId, ?int $userId = null): Collection
     {
-        return VoucherSale::where('business_id', $businessId)
-            ->with(['items.voucherProduct', 'outlet', 'reseller', 'soldBy'])
-            ->orderBy('sold_at', 'desc')
-            ->get();
+        $query = VoucherSale::where('business_id', $businessId)
+            ->with(['items.voucherProduct', 'outlet', 'reseller', 'soldBy']);
+
+        if ($userId) {
+            $query->where('sold_by_user_id', $userId);
+        }
+
+        return $query->orderBy('sold_at', 'desc')->get();
     }
 
     public function findById(int $id, int $businessId): ?VoucherSale

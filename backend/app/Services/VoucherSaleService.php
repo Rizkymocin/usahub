@@ -10,6 +10,7 @@ use App\Services\VoucherStockAllocationService;
 use App\Models\VoucherSale;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class VoucherSaleService
 {
@@ -40,7 +41,15 @@ class VoucherSaleService
             return null;
         }
 
-        return $this->voucherSaleRepository->findByBusiness($business->id);
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $userId = null;
+
+        if ($user && !$user->hasAnyRole(['superadmin', 'owner', 'business_admin', 'admin'])) {
+            $userId = $user->id;
+        }
+
+        return $this->voucherSaleRepository->findByBusiness($business->id, $userId);
     }
 
     public function getSaleById(string $salePublicId, string $businessPublicId, int $tenantId): ?VoucherSale

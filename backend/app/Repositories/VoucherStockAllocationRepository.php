@@ -40,7 +40,7 @@ class VoucherStockAllocationRepository
                 'voucher_product_id',
                 DB::raw('SUM(qty_allocated) as total_allocated'),
                 DB::raw('SUM(qty_sold) as total_sold'),
-                DB::raw('SUM(qty_allocated - qty_sold) as qty_available')
+                DB::raw('SUM(qty_allocated - qty_sold - qty_damaged) as qty_available')
             ])
             ->where('allocated_to_user_id', $userId)
             ->where('status', 'active')
@@ -102,6 +102,15 @@ class VoucherStockAllocationRepository
     }
 
     /**
+     * Increment qty_damaged for an allocation
+     */
+    public function incrementDamaged(int $allocationId, int $quantity): void
+    {
+        $allocation = VoucherStockAllocation::findOrFail($allocationId);
+        $allocation->increment('qty_damaged', $quantity);
+    }
+
+    /**
      * Get total available quantity for a user and product
      */
     public function getAvailableQuantity(int $userId, int $voucherProductId): int
@@ -110,7 +119,7 @@ class VoucherStockAllocationRepository
             ->where('allocated_to_user_id', $userId)
             ->where('voucher_product_id', $voucherProductId)
             ->where('status', 'active')
-            ->sum(DB::raw('qty_allocated - qty_sold'));
+            ->sum(DB::raw('qty_allocated - qty_sold - qty_damaged'));
     }
 
     /**
@@ -123,7 +132,7 @@ class VoucherStockAllocationRepository
             ->where('allocated_to_user_id', $userId)
             ->where('voucher_product_id', $voucherProductId)
             ->where('status', 'active')
-            ->whereRaw('qty_sold < qty_allocated')
+            ->whereRaw('(qty_sold + qty_damaged) < qty_allocated')
             ->orderBy('allocated_at', 'asc')
             ->first();
     }

@@ -28,6 +28,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DamageReportDialog from '@/app/components/voucher/DamageReportDialog';
+
 export default function VoucherStockTab() {
     const { public_id } = useParams();
     const businessId = Array.isArray(public_id) ? public_id[0] : public_id || '';
@@ -35,12 +38,15 @@ export default function VoucherStockTab() {
     const {
         stocks,
         summary,
+        adjustments,
         isLoading,
         fetchStocks,
         fetchSummary,
+        fetchAdjustments,
         updatePrice,
         deleteStock,
-        addStock
+        addStock,
+        reportDamage
     } = useVoucherStockStore();
 
     const { vouchers, fetchVouchers } = useVoucherStore();
@@ -49,6 +55,10 @@ export default function VoucherStockTab() {
     const [editingStock, setEditingStock] = useState<IspVoucherStock | null>(null);
     const [editPrice, setEditPrice] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Damage Report State
+    const [damageDialogOpen, setDamageDialogOpen] = useState(false);
+    const [selectedStockForDamage, setSelectedStockForDamage] = useState<IspVoucherStock | null>(null);
 
     // Add Stock Form State
     const [formData, setFormData] = useState({
@@ -63,8 +73,9 @@ export default function VoucherStockTab() {
         if (businessId) {
             fetchStocks(businessId);
             fetchSummary(businessId);
+            fetchAdjustments(businessId);
         }
-    }, [businessId, fetchStocks, fetchSummary]);
+    }, [businessId, fetchStocks, fetchSummary, fetchAdjustments]);
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -143,6 +154,12 @@ export default function VoucherStockTab() {
         } catch (error: any) {
             toast.error(error.message || 'Gagal hapus stok');
         }
+    };
+
+    const handleReportDamage = async (quantity: number, reason: string, notes: string, files: File[]) => {
+        if (!selectedStockForDamage) return;
+
+        await reportDamage(businessId, selectedStockForDamage.id, quantity, reason, notes, files);
     };
 
     const formatCurrency = (amount: number) => {
@@ -284,111 +301,202 @@ export default function VoucherStockTab() {
                 ))}
             </div>
 
-            {/* Stock List */}
-            <div className="rounded-md border bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                        <tr>
-                            <th className="px-6 py-3">Produk Voucher</th>
-                            <th className="px-6 py-3">Stok Tersedia</th>
-                            <th className="px-6 py-3">Harga Beli</th>
-                            <th className="px-6 py-3">Harga Jual</th>
-                            <th className="px-6 py-3">Dibuat Oleh</th>
-                            <th className="px-6 py-3">Tanggal Dibuat</th>
-                            <th className="px-6 py-3 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {isLoading && stocks.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                                    Memuat data stok...
-                                </td>
-                            </tr>
-                        ) : stocks.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                    Belum ada stok voucher. Klik tombol "Tambah Stok" untuk menambahkan.
-                                </td>
-                            </tr>
-                        ) : (
-                            stocks.map((stock) => (
-                                <tr key={stock.id} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-gray-900">
-                                        {stock.voucher_product?.name || '-'}
-                                        {stock.notes && (
-                                            <div className="text-xs text-gray-500 mt-1">{stock.notes}</div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 font-bold text-gray-700">
-                                        {stock.quantity}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {stock.purchase_price ? formatCurrency(stock.purchase_price) : '-'}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {editingStock?.id === stock.id ? (
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="number"
-                                                    value={editPrice}
-                                                    onChange={(e) => setEditPrice(e.target.value)}
-                                                    className="w-24 px-2 py-1 text-sm border rounded"
-                                                    autoFocus
-                                                />
-                                                <button
-                                                    onClick={() => handleUpdatePrice(stock.id)}
-                                                    className="text-green-600 hover:text-green-800 text-xs px-2 py-1 bg-green-50 rounded"
-                                                >
-                                                    Save
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingStock(null)}
-                                                    className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1 bg-gray-50 rounded"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="font-semibold text-green-700">
-                                                {formatCurrency(stock.default_selling_price)}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-500">
-                                        {stock.created_by?.name || 'System'}
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-500">
-                                        {new Date(stock.created_at).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setEditingStock(stock);
-                                                    setEditPrice(stock.default_selling_price.toString());
-                                                }}
-                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                title="Edit Harga"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(stock.id)}
-                                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                title="Hapus Stok"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+            {/* Stock List Tabs */}
+            <Tabs defaultValue="active-stock">
+                <TabsList>
+                    <TabsTrigger value="active-stock">Stok Aktif</TabsTrigger>
+                    <TabsTrigger value="adjustments">Riwayat Penyesuaian (Rusak/Hilang)</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active-stock" className="space-y-4">
+                    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-3">Produk Voucher</th>
+                                    <th className="px-6 py-3">Stok Tersedia</th>
+                                    <th className="px-6 py-3">Harga Beli</th>
+                                    <th className="px-6 py-3">Harga Jual</th>
+                                    <th className="px-6 py-3">Dibuat Oleh</th>
+                                    <th className="px-6 py-3">Tanggal Dibuat</th>
+                                    <th className="px-6 py-3 text-right">Aksi</th>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                            </thead>
+                            <tbody>
+                                {isLoading && stocks.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                                            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                                            Memuat data stok...
+                                        </td>
+                                    </tr>
+                                ) : stocks.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                                            Belum ada stok voucher. Klik tombol "Tambah Stok" untuk menambahkan.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    stocks.map((stock) => (
+                                        <tr key={stock.id} className="bg-white border-b hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {stock.voucher_product?.name || '-'}
+                                                {stock.notes && (
+                                                    <div className="text-xs text-gray-500 mt-1">{stock.notes}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-gray-700">
+                                                {stock.quantity}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {stock.purchase_price ? formatCurrency(stock.purchase_price) : '-'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {editingStock?.id === stock.id ? (
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="number"
+                                                            value={editPrice}
+                                                            onChange={(e) => setEditPrice(e.target.value)}
+                                                            className="w-24 px-2 py-1 text-sm border rounded"
+                                                            autoFocus
+                                                        />
+                                                        <button
+                                                            onClick={() => handleUpdatePrice(stock.id)}
+                                                            className="text-green-600 hover:text-green-800 text-xs px-2 py-1 bg-green-50 rounded"
+                                                        >
+                                                            Save
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingStock(null)}
+                                                            className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1 bg-gray-50 rounded"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="font-semibold text-green-700">
+                                                        {formatCurrency(stock.default_selling_price)}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {stock.created_by?.name || 'System'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {new Date(stock.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingStock(stock);
+                                                            setEditPrice(stock.default_selling_price.toString());
+                                                        }}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        title="Edit Harga"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedStockForDamage(stock);
+                                                            setDamageDialogOpen(true);
+                                                        }}
+                                                        className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                        title="Lapor Kerusakan/Hilang"
+                                                    >
+                                                        <span className="text-xs font-bold">Lapor</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(stock.id)}
+                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        title="Hapus Stok"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+
+                    </div>
+                </TabsContent >
+
+                <TabsContent value="adjustments">
+                    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-3">Tanggal</th>
+                                    <th className="px-6 py-3">Produk Voucher</th>
+                                    <th className="px-6 py-3">Jenis</th>
+                                    <th className="px-6 py-3">Jumlah</th>
+                                    <th className="px-6 py-3">Catatan</th>
+                                    <th className="px-6 py-3">Dilaporkan Oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {isLoading && adjustments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                                            Memuat riwayat penyesuaian...
+                                        </td>
+                                    </tr>
+                                ) : adjustments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                            Belum ada riwayat penyesuaian stok.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    adjustments.map((adj) => (
+                                        <tr key={adj.id} className="bg-white border-b hover:bg-gray-50">
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {new Date(adj.created_at).toLocaleString('id-ID')}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-gray-900">
+                                                {adj.voucher_product?.name || '-'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium 
+                                            ${adj.adjustment_type === 'damage' ? 'bg-red-100 text-red-800' :
+                                                        adj.adjustment_type === 'loss' ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-gray-100 text-gray-800'}`}>
+                                                    {adj.adjustment_type === 'damage' ? 'Rusak' :
+                                                        adj.adjustment_type === 'loss' ? 'Hilang' :
+                                                            adj.adjustment_type === 'expired' ? 'Kedaluwarsa' : 'Lainnya'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-gray-700">
+                                                {adj.quantity} Pcs
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {adj.notes || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {adj.created_by?.name || '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </TabsContent >
+            </Tabs >
+
+            <DamageReportDialog
+                isOpen={damageDialogOpen}
+                onClose={() => setDamageDialogOpen(false)}
+                onSubmit={handleReportDamage}
+                stockName={selectedStockForDamage?.voucher_product?.name}
+                maxQuantity={selectedStockForDamage?.quantity}
+            />
+        </div >
     );
 }

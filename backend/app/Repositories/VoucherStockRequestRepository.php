@@ -10,13 +10,17 @@ class VoucherStockRequestRepository
     /**
      * Get all requests for a business
      */
-    public function findByBusiness(int $businessId, ?string $status = null): Collection
+    public function findByBusiness(int $businessId, ?string $status = null, ?int $userId = null): Collection
     {
         $query = VoucherStockRequest::where('business_id', $businessId)
             ->with(['requestedBy', 'processedBy', 'outlet', 'items.voucher_product']);
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($userId) {
+            $query->where('requested_by_user_id', $userId);
         }
 
         return $query->orderBy('created_at', 'desc')->get();

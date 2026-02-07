@@ -7,6 +7,7 @@ use App\Models\IspMaintenanceIssue;
 use App\Models\IspReseller;
 use App\Repositories\IspMaintenanceRepository;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class IspMaintenanceService
 {
@@ -20,6 +21,13 @@ class IspMaintenanceService
     public function getBusinessIssues(string $businessPublicId, array $filters = []): Collection
     {
         $business = Business::where('public_id', $businessPublicId)->firstOrFail();
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if ($user && !$user->hasAnyRole(['superadmin', 'owner', 'business_admin', 'admin'])) {
+            $filters['technician_isolation_id'] = $user->id;
+        }
+
         return $this->repository->getIssuesByBusinessId($business->id, $filters)
             ->load(['logs.technician', 'logs.items']);
     }

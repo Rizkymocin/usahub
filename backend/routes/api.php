@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Voucher Stock Allocation Routes
     Route::get('/businesses/{public_id}/voucher-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'index']);
     Route::get('/businesses/{public_id}/voucher-allocations/my-stock', [\App\Http\Controllers\VoucherStockAllocationController::class, 'myStock']);
+    Route::get('/businesses/{public_id}/voucher-allocations/my-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'myAllocations']);
     Route::post('/businesses/{public_id}/voucher-allocations', [\App\Http\Controllers\VoucherStockAllocationController::class, 'store']);
     Route::patch('/businesses/{public_id}/voucher-allocations/{allocation}/close', [\App\Http\Controllers\VoucherStockAllocationController::class, 'close']);
 
@@ -88,6 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/voucher-stocks', [\App\Http\Controllers\IspVoucherStockController::class, 'store']);
     Route::put('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'update']);
     Route::delete('/businesses/{public_id}/voucher-stocks/{stockId}', [\App\Http\Controllers\IspVoucherStockController::class, 'destroy']);
+
+    // Voucher Stock Adjustments (Damage/Loss)
+    Route::get('/businesses/{public_id}/voucher-stock-adjustments', [\App\Http\Controllers\VoucherStockAdjustmentController::class, 'index']);
+    Route::post('/businesses/{public_id}/voucher-stocks/{stockId}/adjustments', [\App\Http\Controllers\VoucherStockAdjustmentController::class, 'storeWarehouseAdjustment']);
+    Route::post('/businesses/{public_id}/voucher-allocations/{allocationId}/adjustments', [\App\Http\Controllers\VoucherStockAdjustmentController::class, 'storeAllocationAdjustment']);
 
     // Maintenance / Gangguan Routes
     Route::get('/businesses/{public_id}/maintenance-issues', [\App\Http\Controllers\IspMaintenanceIssueController::class, 'index']);

@@ -5,11 +5,14 @@ namespace App\Services;
 use App\Models\VoucherStockAllocation;
 use App\Repositories\VoucherStockAllocationRepository;
 use Illuminate\Database\Eloquent\Collection;
+use App\Repositories\IspVoucherStockAdjustmentRepository;
+use Illuminate\Support\Facades\Auth;
 
 class VoucherStockAllocationService
 {
     public function __construct(
-        private VoucherStockAllocationRepository $allocationRepository
+        private VoucherStockAllocationRepository $allocationRepository,
+        private IspVoucherStockAdjustmentRepository $adjustmentRepository
     ) {}
 
     /**
@@ -40,6 +43,7 @@ class VoucherStockAllocationService
             'voucher_product_id' => $data['voucher_product_id'],
             'qty_allocated' => $data['qty_allocated'],
             'qty_sold' => 0,
+            'qty_damaged' => 0,
             'source_type' => 'manual',
             'source_id' => null,
             'status' => 'active',
@@ -75,7 +79,7 @@ class VoucherStockAllocationService
                 throw new \Exception('Insufficient allocation stock for this sale');
             }
 
-            $availableInAllocation = $allocation->qty_allocated - $allocation->qty_sold;
+            $availableInAllocation = $allocation->qty_allocated - $allocation->qty_sold - ($allocation->qty_damaged ?? 0);
             $qtyToDeduct = min($remainingQty, $availableInAllocation);
 
             // Increment sold quantity
@@ -83,6 +87,45 @@ class VoucherStockAllocationService
 
             $remainingQty -= $qtyToDeduct;
         }
+    }
+
+    /**
+     * Report damage for an allocated stock
+     */
+    public function reportDamage(int $allocationId, int $quantity, string $reason, ?string $notes = null, ?array $files = null): void
+    {
+        $allocation = $this->allocationRepository->findById($allocationId);
+        if (!$allocation) {
+            throw new \Exception('Allocation not found');
+        }
+
+        $available = $allocation->qty_allocated - $allocation->qty_sold - $allocation->qty_damaged;
+        if ($quantity > $available) {
+            throw new \Exception('Insufficient available quantity in this allocation');
+        }
+
+        // 1. Increment damaged quantity
+        $this->allocationRepository->incrementDamaged($allocationId, $quantity);
+
+        // 2. Handle file upload (similar to stock service)
+        $attachmentPath = null;
+        if ($files && isset($files[0])) {
+            $attachmentPath = $files[0]->store('adjustments', 'public');
+        }
+
+        // 3. Create adjustment record
+        $this->adjustmentRepository->create([
+            'tenant_id' => $allocation->tenant_id,
+            'business_id' => $allocation->business_id,
+            'voucher_product_id' => $allocation->voucher_product_id,
+            'quantity' => -$quantity,
+            'adjustment_type' => $reason,
+            'source_type' => 'allocation',
+            'source_id' => $allocation->id,
+            'notes' => $notes,
+            'attachment_path' => $attachmentPath,
+            'created_by_user_id' => Auth::id(),
+        ]);
     }
 
     /**

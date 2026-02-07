@@ -116,6 +116,23 @@ class IspVoucherStockRepository
     /**
      * Delete stock entry
      */
+    /**
+     * Decrement quantity for a specific stock ID
+     */
+    public function decrementStockId(int $stockId, int $quantity): void
+    {
+        $stock = $this->findById($stockId);
+        if (!$stock) {
+            throw new \Exception('Stock not found');
+        }
+
+        if ($stock->quantity < $quantity) {
+            throw new \Exception('Insufficient stock quantity in this batch');
+        }
+
+        $stock->decrement('quantity', $quantity);
+    }
+
     public function delete(int $id): bool
     {
         return IspVoucherStock::where('id', $id)->delete();

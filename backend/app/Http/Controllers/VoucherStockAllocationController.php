@@ -69,6 +69,34 @@ class VoucherStockAllocationController extends Controller
     }
 
     /**
+     * Get finance user's active allocations (detailed)
+     * GET /api/businesses/{business}/voucher-allocations/my-allocations
+     */
+    public function myAllocations(string $businessPublicId, Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Get business
+            $business = $this->getBusiness($businessPublicId, $request);
+            if (!$business) {
+                return response()->json(['error' => 'Business not found'], 404);
+            }
+
+            $allocations = $this->allocationService->getActiveAllocations($user->id);
+
+            return response()->json([
+                'data' => $allocations
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Create manual allocation (Admin only)
      * POST /api/businesses/{business}/voucher-allocations
      */

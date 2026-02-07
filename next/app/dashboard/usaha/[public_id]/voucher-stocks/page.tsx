@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useVoucherStockStore, IspVoucherStock } from '@/stores/voucher-stock.store';
 import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
 import AddStockDialog from '@/app/components/voucher/AddStockDialog';
+import DamageReportDialog from '@/app/components/voucher/DamageReportDialog';
 import { toast } from 'sonner';
 
 export default function VoucherStocksPage() {
@@ -18,12 +19,23 @@ export default function VoucherStocksPage() {
         fetchStocks,
         fetchSummary,
         updatePrice,
-        deleteStock
+        deleteStock,
+        reportDamage
     } = useVoucherStockStore();
 
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [editingStock, setEditingStock] = useState<IspVoucherStock | null>(null);
     const [editPrice, setEditPrice] = useState('');
+
+    // Damage Report State
+    const [damageDialogOpen, setDamageDialogOpen] = useState(false);
+    const [selectedStockForDamage, setSelectedStockForDamage] = useState<IspVoucherStock | null>(null);
+
+    const handleReportDamage = async (quantity: number, reason: string, notes: string, files: File[]) => {
+        if (!selectedStockForDamage) return;
+
+        await reportDamage(businessId, selectedStockForDamage.id, quantity, reason, notes, files);
+    };
 
     useEffect(() => {
         if (businessId) {
@@ -192,6 +204,16 @@ export default function VoucherStocksPage() {
                                                 <Edit2 className="h-4 w-4" />
                                             </button>
                                             <button
+                                                onClick={() => {
+                                                    setSelectedStockForDamage(stock);
+                                                    setDamageDialogOpen(true);
+                                                }}
+                                                className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                title="Lapor Kerusakan/Hilang"
+                                            >
+                                                <span className="text-xs font-bold">Lapor</span>
+                                            </button>
+                                            <button
                                                 onClick={() => handleDelete(stock.id)}
                                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                                                 title="Hapus Stok"
@@ -211,6 +233,14 @@ export default function VoucherStocksPage() {
                 businessId={businessId}
                 isOpen={isAddDialogOpen}
                 onClose={() => setIsAddDialogOpen(false)}
+            />
+
+            <DamageReportDialog
+                isOpen={damageDialogOpen}
+                onClose={() => setDamageDialogOpen(false)}
+                onSubmit={handleReportDamage}
+                stockName={selectedStockForDamage?.voucher_product?.name}
+                maxQuantity={selectedStockForDamage?.quantity}
             />
         </div>
     );

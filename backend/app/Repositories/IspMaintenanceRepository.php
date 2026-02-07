@@ -17,6 +17,16 @@ class IspMaintenanceRepository
             $query->where('status', $filters['status']);
         }
 
+        // Filter for Technicians: See own assignments, own reports, or pending (unassigned) tasks
+        if (isset($filters['technician_isolation_id'])) {
+            $userId = $filters['technician_isolation_id'];
+            $query->where(function ($q) use ($userId) {
+                $q->where('assigned_technician_id', $userId)
+                    ->orWhere('reporter_id', $userId)
+                    ->orWhere('status', 'pending');
+            });
+        }
+
         return $query->latest('reported_at')->get();
     }
 
