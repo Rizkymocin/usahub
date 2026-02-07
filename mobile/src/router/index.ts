@@ -61,6 +61,16 @@ const router = createRouter({
                     path: 'maintenance/:id',
                     name: 'maintenance-detail',
                     component: () => import('@/views/Maintenance/MaintenanceDetailView.vue')
+                },
+                {
+                    path: 'installation-queue',
+                    name: 'installation-queue',
+                    component: () => import('@/views/Maintenance/InstallationQueueView.vue')
+                },
+                {
+                    path: 'registration',
+                    name: 'registration',
+                    component: () => import('@/views/ResellerRegistrationView.vue')
                 }
             ]
         }

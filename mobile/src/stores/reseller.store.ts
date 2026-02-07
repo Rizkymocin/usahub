@@ -2,14 +2,19 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from '@/lib/axios';
 
+
 export interface Reseller {
     id: number;
-    reseller_code: string;
+    code: string;
     name: string;
     phone: string;
     address: string | null;
+    latitude: number | null;
+    longitude: number | null;
     is_active: boolean;
-    outlet_id: number | null;
+    created_at: string;
+    business_id: number;
+    outlet_id: number;
 }
 
 export const useResellerStore = defineStore('reseller', () => {
@@ -17,29 +22,58 @@ export const useResellerStore = defineStore('reseller', () => {
     const loading = ref(false);
     const error = ref<string | null>(null);
 
-    async function fetchResellers(businessPublicId: string) {
+    // const authStore = useAuthStore();
+
+    const fetchResellers = async (businessPublicId: string) => {
         loading.value = true;
         error.value = null;
         try {
             const response = await axios.get(`/businesses/${businessPublicId}/resellers`);
-            if (response.data.success) {
-                resellers.value = response.data.data;
-                return response.data.data;
-            } else {
-                throw new Error(response.data.message || 'Failed to fetch resellers');
-            }
+            resellers.value = response.data.data;
         } catch (err: any) {
-            error.value = err.response?.data?.message || err.message || 'Failed to fetch resellers';
+            error.value = err.response?.data?.message || 'Gagal memuat data reseller';
+            console.error(err);
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    const fetchInactiveResellers = async (businessPublicId: string) => {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await axios.get(`/businesses/${businessPublicId}/resellers/inactive`);
+            resellers.value = response.data.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Gagal memuat data reseller baru';
+            console.error(err);
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    const createReseller = async (businessPublicId: string, data: any) => {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await axios.post(`/businesses/${businessPublicId}/resellers`, data);
+            resellers.value.push(response.data.data);
+            return response.data.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Gagal mendaftarkan reseller';
+            console.error(err);
             throw err;
         } finally {
             loading.value = false;
         }
-    }
+    };
 
     return {
         resellers,
         loading,
         error,
-        fetchResellers
+        fetchResellers,
+        fetchInactiveResellers,
+        createReseller
     };
 });

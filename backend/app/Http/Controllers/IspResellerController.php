@@ -4,56 +4,63 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Business;
-use App\Models\IspReseller;
+use App\Services\IspResellerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IspResellerController extends Controller
 {
-    private function resolveTenantId(Request $request, string $businessPublicId): ?int
+    protected $resellerService;
+
+    public function __construct(IspResellerService $resellerService)
     {
-        $user = $request->user();
-        if ($user->tenant) {
-            return $user->tenant->id;
-        }
-        $business = $user->businesses()->where('public_id', $businessPublicId)->first();
-        return $business ? $business->tenant_id : null;
+        $this->resellerService = $resellerService;
     }
 
-    private function getBusiness(string $publicId, int $tenantId): ?Business
+    private function getBusiness(Request $request, string $publicId): ?Business
     {
-        return Business::where('public_id', $publicId)->where('tenant_id', $tenantId)->first();
+        $user = $request->user();
+        return $user->businesses()->where('businesses.public_id', $publicId)->first();
     }
 
     public function index(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $this->resolveTenantId($request, $businessPublicId);
-        if (!$tenantId) {
-            return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
-        }
-
-        $business = $this->getBusiness($businessPublicId, $tenantId);
+        $business = $this->getBusiness($request, $businessPublicId);
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
 
-        $resellers = IspReseller::where('tenant_id', $tenantId)
-            // Assuming resellers are linked to business via outlet or directly if schema supports
-            // Created migration: isp_resellers has outlet_id. Does it have business_id?
-            // Checking migration content... It has tenant_id and outlet_id.
-            // Wait, how do we know which business it belongs to?
-            // "isp_outlets" has business_id. So resellers belong to an outlet, which belongs to a business.
-            // Or maybe I should check if IspReseller has business_id.
-            // User provided migration: 2026_01_22_144540_create_isp_resellers_table.php
-            // It has tenant_id and outlet_id.
-            // So resellers are tied to outlets.
-            // If the user wants "Resellers" tab in Business page, we should list "All resellers of all outlets of this business" OR "Direct resellers"?
-            // Let's assume we list all resellers linked to outlets of this business.
-            ->whereHas('outlet', function ($q) use ($business) {
-                $q->where('business_id', $business->id);
-            })
-            ->with('outlet')
-            ->get();
+        $resellers = $this->resellerService->getBusinessResellers($business->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $resellers
+        ]);
+    }
+
+    public function getActive(Request $request, string $businessPublicId): JsonResponse
+    {
+        $business = $this->getBusiness($request, $businessPublicId);
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+
+        $resellers = $this->resellerService->getActiveResellers($business->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $resellers
+        ]);
+    }
+
+    public function getInactive(Request $request, string $businessPublicId): JsonResponse
+    {
+        $business = $this->getBusiness($request, $businessPublicId);
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+
+        $resellers = $this->resellerService->getInactiveResellers($business->id);
 
         return response()->json([
             'success' => true,
@@ -63,46 +70,43 @@ class IspResellerController extends Controller
 
     public function store(Request $request, string $businessPublicId): JsonResponse
     {
-        $tenantId = $this->resolveTenantId($request, $businessPublicId);
-        if (!$tenantId) {
-            return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
-        }
-
-        $business = $this->getBusiness($businessPublicId, $tenantId);
+        $business = $this->getBusiness($request, $businessPublicId);
         if (!$business) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
 
         $validated = $request->validate([
-            'outlet_id' => 'required|exists:isp_outlets,id',
             'name' => 'required|string',
             'phone' => 'required|string',
             'address' => 'nullable|string',
-            'code' => 'required|string|unique:isp_resellers,code',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'outlet_id' => 'nullable|exists:isp_outlets,id', // Optional, will infer if null
         ]);
 
-        // Verify outlet belongs to business
-        $outlet = \App\Models\IspOutlet::where('id', $validated['outlet_id'])
-            ->where('business_id', $business->id)
-            ->first();
-
-        if (!$outlet) {
-            return response()->json(['success' => false, 'message' => 'Outlet not found or does not belong to this business'], 400);
+        try {
+            $reseller = $this->resellerService->registerReseller($business, $validated, $request->user()->id);
+            return response()->json(['success' => true, 'data' => $reseller], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
-
-        $reseller = IspReseller::create([
-            'tenant_id' => $tenantId,
-            'outlet_id' => $outlet->id,
-            'code' => $validated['code'], // Should be autogenerated or user input? Assuming input for now
-            'name' => $validated['name'],
-            'phone' => $validated['phone'],
-            'address' => $validated['address'],
-            'is_active' => true,
-        ]);
-
-        return response()->json(['success' => true, 'data' => $reseller], 201);
     }
 
-    // TODO: Update and Delete methods can be added as needed.
-    // Focusing on listing and creation first for the tab.
+    public function activate(Request $request, string $businessPublicId, string $resellerCode): JsonResponse
+    {
+        $business = $this->getBusiness($request, $businessPublicId);
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+
+        try {
+            $result = $this->resellerService->activateReseller($resellerCode, $business->tenant_id);
+            if ($result) {
+                return response()->json(['success' => true, 'message' => 'Reseller activated successfully']);
+            }
+            return response()->json(['success' => false, 'message' => 'Failed to activate reseller'], 400);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
 }

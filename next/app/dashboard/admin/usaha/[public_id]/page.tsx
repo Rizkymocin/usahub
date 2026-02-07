@@ -86,7 +86,7 @@ export default function DetailUsahaAdminPage() {
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>}
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>}
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="voucher-main">Voucher</TabsTrigger>}
-                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="maintenance">Gangguan</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="maintenance">Gangguan/Instalasi</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">

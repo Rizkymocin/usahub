@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight, UserCheck } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -29,7 +30,6 @@ import {
     flexRender,
     SortingState,
     ColumnFiltersState,
-    VisibilityState,
 } from "@tanstack/react-table"
 import { useResellerStore, Reseller } from "@/stores/reseller.store"
 import { useOutletStore } from "@/stores/outlet.store"
@@ -38,9 +38,22 @@ export default function Resellers() {
     const { public_id } = useParams()
 
     // Store Hooks
-    const { resellers, isLoading: isResellersLoading, fetchResellers, addReseller, updateReseller, deleteReseller } = useResellerStore()
+    const {
+        resellers,
+        activeResellers,
+        inactiveResellers,
+        isLoading: isResellersLoading,
+        fetchResellers,
+        fetchActiveResellers,
+        fetchInactiveResellers,
+        addReseller,
+        updateReseller,
+        deleteReseller,
+        activateReseller
+    } = useResellerStore()
     const { outlets, fetchOutlets } = useOutletStore()
 
+    const [activeTab, setActiveTab] = useState("active")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false)
     const [resellerToSwitch, setResellerToSwitch] = useState<Reseller | null>(null)
@@ -53,22 +66,26 @@ export default function Resellers() {
     const [address, setAddress] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Table State
-    const [sorting, setSorting] = useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const [globalFilter, setGlobalFilter] = useState("")
-    const [pagination, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 5,
-    })
+    // Table State for Active Tab
+    const [activeSorting, setActiveSorting] = useState<SortingState>([])
+    const [activeColumnFilters, setActiveColumnFilters] = useState<ColumnFiltersState>([])
+    const [activeGlobalFilter, setActiveGlobalFilter] = useState("")
+    const [activePagination, setActivePagination] = useState({ pageIndex: 0, pageSize: 5 })
+
+    // Table State for Inactive Tab
+    const [inactiveSorting, setInactiveSorting] = useState<SortingState>([])
+    const [inactiveColumnFilters, setInactiveColumnFilters] = useState<ColumnFiltersState>([])
+    const [inactiveGlobalFilter, setInactiveGlobalFilter] = useState("")
+    const [inactivePagination, setInactivePagination] = useState({ pageIndex: 0, pageSize: 5 })
 
     useEffect(() => {
         if (public_id) {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
-            fetchResellers(id)
+            fetchActiveResellers(id)
+            fetchInactiveResellers(id)
             fetchOutlets(id)
         }
-    }, [public_id, fetchResellers, fetchOutlets])
+    }, [public_id, fetchActiveResellers, fetchInactiveResellers, fetchOutlets])
 
     const handleSubmit = async () => {
         if (!selectedOutlet) {
@@ -89,28 +106,39 @@ export default function Resellers() {
                 phone,
                 address
             })
-            toast.success("Reseller berhasil ditambahkan")
+            toast.success("Reseller berhasil ditambahkan. Menunggu instalasi.")
             setIsDialogOpen(false)
             // Reset form
             setName("")
             setPhone("")
             setAddress("")
             setSelectedOutlet("")
+            // Refresh inactive resellers
+            fetchInactiveResellers(id)
         } catch (error: any) {
             console.error(error)
-            // Error is handled in store but toast here for specific context if needed, 
-            // though store likely sets error state. We can use store error or just toast here.
-            // keeping it simple with toast here as per original, although store intercepts error.
-            // The store throws error, so we catch it here.
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    const handleToggleStatus = async (reseller: Reseller) => {
-        // Prevent toggling if public_id is missing (though it shouldn't be)
+    const handleActivate = async (reseller: Reseller) => {
         if (!public_id) return
+        const businessId = Array.isArray(public_id) ? public_id[0] : public_id
 
+        try {
+            await activateReseller(businessId, reseller.code)
+            toast.success("Reseller berhasil diaktifkan")
+            // Refresh both lists
+            fetchActiveResellers(businessId)
+            fetchInactiveResellers(businessId)
+        } catch (error: any) {
+            // Error handled
+        }
+    }
+
+    const handleToggleStatus = async (reseller: Reseller) => {
+        if (!public_id) return
         const businessId = Array.isArray(public_id) ? public_id[0] : public_id
 
         try {
@@ -118,6 +146,9 @@ export default function Resellers() {
                 is_active: !reseller.is_active
             })
             toast.success(reseller.is_active ? "Reseller dinonaktifkan" : "Reseller diaktifkan")
+            // Refresh both lists
+            fetchActiveResellers(businessId)
+            fetchInactiveResellers(businessId)
         } catch (error: any) {
             // Error handled
         }
@@ -132,6 +163,12 @@ export default function Resellers() {
         try {
             await deleteReseller(businessId, reseller.code)
             toast.success("Reseller berhasil dihapus")
+            // Refresh appropriate list
+            if (reseller.is_active) {
+                fetchActiveResellers(businessId)
+            } else {
+                fetchInactiveResellers(businessId)
+            }
         } catch (error: any) {
             // Error handled
         }
@@ -155,6 +192,12 @@ export default function Resellers() {
             setIsSwitchOutletOpen(false)
             setResellerToSwitch(null)
             setSwitchOutletId("")
+            // Refresh appropriate list
+            if (resellerToSwitch.is_active) {
+                fetchActiveResellers(businessId)
+            } else {
+                fetchInactiveResellers(businessId)
+            }
         } catch (error: any) {
             // Error handled by store/toast
         } finally {
@@ -162,7 +205,8 @@ export default function Resellers() {
         }
     }
 
-    const columns: ColumnDef<Reseller>[] = useMemo(() => [
+    // Columns for Active Resellers
+    const activeColumns: ColumnDef<Reseller>[] = useMemo(() => [
         {
             accessorKey: "name",
             header: ({ column }) => {
@@ -195,22 +239,6 @@ export default function Resellers() {
             cell: ({ row }) => <div className="text-muted-foreground">{row.getValue("phone")}</div>,
         },
         {
-            accessorKey: "is_active",
-            header: "Status",
-            cell: ({ row }) => {
-                const status = row.getValue("is_active")
-                return (
-                    <Badge variant={status ? "default" : "destructive"}>
-                        {status ? 'Aktif' : 'Nonaktif'}
-                    </Badge>
-                )
-            },
-            filterFn: (row, id, value) => {
-                if (value === "all") return true
-                return value === "active" ? !!row.getValue(id) : !row.getValue(id)
-            }
-        },
-        {
             id: "actions",
             enableHiding: false,
             cell: ({ row }) => {
@@ -228,12 +256,11 @@ export default function Resellers() {
                             <DropdownMenuLabel>Aksi</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleToggleStatus(item)} className="cursor-pointer">
                                 <Power className="mr-2 h-4 w-4" />
-                                {item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                                Nonaktifkan
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => {
                                 setResellerToSwitch(item)
-                                // We don't have outlet_id in the interface, so we start with empty or try to find it if available in future
                                 setSwitchOutletId("")
                                 setIsSwitchOutletOpen(true)
                             }} className="cursor-pointer">
@@ -251,24 +278,209 @@ export default function Resellers() {
         },
     ], [])
 
-    const table = useReactTable({
-        data: resellers,
-        columns,
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
+    // Columns for Inactive Resellers (New Installations)
+    const inactiveColumns: ColumnDef<Reseller>[] = useMemo(() => [
+        {
+            accessorKey: "name",
+            header: ({ column }) => {
+                return (
+                    <Button
+                        variant="ghost"
+                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="p-0 hover:bg-transparent"
+                    >
+                        Nama
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                )
+            },
+            cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        },
+        {
+            accessorKey: "code",
+            header: "Kode",
+            cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("code")}</div>,
+        },
+        {
+            accessorKey: "outlet.name",
+            header: "Outlet",
+            cell: ({ row }) => <div>{row.original.outlet?.name || "-"}</div>,
+        },
+        {
+            accessorKey: "phone",
+            header: "Telepon",
+            cell: ({ row }) => <div className="text-muted-foreground">{row.getValue("phone")}</div>,
+        },
+        {
+            accessorKey: "address",
+            header: "Alamat",
+            cell: ({ row }) => <div className="text-sm text-muted-foreground">{row.getValue("address") || "-"}</div>,
+        },
+        {
+            id: "status",
+            header: "Status",
+            cell: () => <Badge variant="secondary">Menunggu Instalasi</Badge>,
+        },
+        {
+            id: "actions",
+            enableHiding: false,
+            cell: ({ row }) => {
+                const item = row.original
+
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleActivate(item)} className="cursor-pointer">
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Aktifkan Reseller
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDelete(item)} className="cursor-pointer text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Reseller
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )
+            },
+        },
+    ], [])
+
+    const activeTable = useReactTable({
+        data: activeResellers,
+        columns: activeColumns,
+        onSortingChange: setActiveSorting,
+        onColumnFiltersChange: setActiveColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        onGlobalFilterChange: setGlobalFilter,
+        onGlobalFilterChange: setActiveGlobalFilter,
         state: {
-            sorting,
-            columnFilters,
-            globalFilter,
-            pagination,
+            sorting: activeSorting,
+            columnFilters: activeColumnFilters,
+            globalFilter: activeGlobalFilter,
+            pagination: activePagination,
         },
-        onPaginationChange: setPagination,
+        onPaginationChange: setActivePagination,
     })
+
+    const inactiveTable = useReactTable({
+        data: inactiveResellers,
+        columns: inactiveColumns,
+        onSortingChange: setInactiveSorting,
+        onColumnFiltersChange: setInactiveColumnFilters,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        onGlobalFilterChange: setInactiveGlobalFilter,
+        state: {
+            sorting: inactiveSorting,
+            columnFilters: inactiveColumnFilters,
+            globalFilter: inactiveGlobalFilter,
+            pagination: inactivePagination,
+        },
+        onPaginationChange: setInactivePagination,
+    })
+
+    const renderTable = (table: any, columns: ColumnDef<Reseller>[], globalFilter: string, setGlobalFilter: (value: string) => void) => (
+        <>
+            <div className="flex items-center py-4 gap-2">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Cari reseller..."
+                        value={globalFilter ?? ""}
+                        onChange={(event) => setGlobalFilter(event.target.value)}
+                        className="pl-8"
+                    />
+                </div>
+            </div>
+
+            {isResellersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            ) : (
+                <div className="rounded-md border">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-muted/50 border-b">
+                            {table.getHeaderGroups().map((headerGroup: any) => (
+                                <tr key={headerGroup.id}>
+                                    {headerGroup.headers.map((header: any) => {
+                                        return (
+                                            <th key={header.id} className="p-4 font-semibold text-muted-foreground">
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                            </th>
+                                        )
+                                    })}
+                                </tr>
+                            ))}
+                        </thead>
+                        <tbody>
+                            {table.getRowModel().rows?.length ? (
+                                table.getRowModel().rows.map((row: any) => (
+                                    <tr
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                        className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                                    >
+                                        {row.getVisibleCells().map((cell: any) => (
+                                            <td key={cell.id} className="p-4">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={columns.length} className="h-24 text-center">
+                                        Tidak ada hasil.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                    Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Sebelumnya
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                >
+                    Selanjutnya
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        </>
+    )
 
     return (
         <Card>
@@ -408,105 +620,28 @@ export default function Resellers() {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="flex items-center py-4 gap-2">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari reseller..."
-                            value={globalFilter ?? ""}
-                            onChange={(event) => setGlobalFilter(event.target.value)}
-                            className="pl-8"
-                        />
-                    </div>
-                    <Select
-                        value={(table.getColumn("is_active")?.getFilterValue() as string) ?? "all"}
-                        onValueChange={(value) => table.getColumn("is_active")?.setFilterValue(value)}
-                    >
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="active">Aktif</SelectItem>
-                            <SelectItem value="inactive">Nonaktif</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {isResellersLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                ) : (
-                    <div className="rounded-md border">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-muted/50 border-b">
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <tr key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => {
-                                            return (
-                                                <th key={header.id} className="p-4 font-semibold text-muted-foreground">
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(
-                                                            header.column.columnDef.header,
-                                                            header.getContext()
-                                                        )}
-                                                </th>
-                                            )
-                                        })}
-                                    </tr>
-                                ))}
-                            </thead>
-                            <tbody>
-                                {table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <tr
-                                            key={row.id}
-                                            data-state={row.getIsSelected() && "selected"}
-                                            className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <td key={cell.id} className="p-4">
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={columns.length} className="h-24 text-center">
-                                            Tidak ada hasil.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <div className="flex-1 text-sm text-muted-foreground">
-                        Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
-                    </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                        Sebelumnya
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Selanjutnya
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="active">
+                            Reseller Aktif
+                            {activeResellers.length > 0 && (
+                                <Badge variant="secondary" className="ml-2">{activeResellers.length}</Badge>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="inactive">
+                            Reseller Baru
+                            {inactiveResellers.length > 0 && (
+                                <Badge variant="destructive" className="ml-2">{inactiveResellers.length}</Badge>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="active">
+                        {renderTable(activeTable, activeColumns, activeGlobalFilter, setActiveGlobalFilter)}
+                    </TabsContent>
+                    <TabsContent value="inactive">
+                        {renderTable(inactiveTable, inactiveColumns, inactiveGlobalFilter, setInactiveGlobalFilter)}
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
     )

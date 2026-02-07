@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 class IspResellerRepository
 {
-    public function getAll(int $tenantId): Collection
+    public function findByBusiness(int $businessId): Collection
     {
-        return IspReseller::where('tenant_id', $tenantId)->get();
+        return IspReseller::where('business_id', $businessId)->get();
     }
 
     public function findById(int $id, int $tenantId): ?IspReseller
@@ -47,15 +47,6 @@ class IspResellerRepository
         return false;
     }
 
-    public function delete(int $id, int $tenantId): bool
-    {
-        $reseller = $this->findById($id, $tenantId);
-        if ($reseller) {
-            return $reseller->delete();
-        }
-        return false;
-    }
-
     public function deleteByCode(string $code, int $tenantId): bool
     {
         $reseller = $this->findByCode($code, $tenantId);
@@ -63,5 +54,21 @@ class IspResellerRepository
             return $reseller->delete();
         }
         return false;
+    }
+
+    public function findActiveByBusiness(int $businessId): Collection
+    {
+        return IspReseller::where('business_id', $businessId)
+            ->where('is_active', true)
+            ->with('outlet')
+            ->get();
+    }
+
+    public function findInactiveByBusiness(int $businessId): Collection
+    {
+        return IspReseller::where('business_id', $businessId)
+            ->where('is_active', false)
+            ->with('outlet')
+            ->get();
     }
 }

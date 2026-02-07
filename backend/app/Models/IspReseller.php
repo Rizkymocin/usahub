@@ -15,11 +15,14 @@ class IspReseller extends Model
 
     protected $fillable = [
         'tenant_id',
+        'business_id',
         'outlet_id',
         'code',
         'name',
         'phone',
         'address',
+        'latitude',
+        'longitude',
         'is_active',
         'created_at',
     ];
@@ -30,12 +33,18 @@ class IspReseller extends Model
 
     protected $hidden = [
         'tenant_id',
+        'business_id',
         'outlet_id',
     ];
 
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function business()
+    {
+        return $this->belongsTo(Business::class);
     }
 
     public function outlet()

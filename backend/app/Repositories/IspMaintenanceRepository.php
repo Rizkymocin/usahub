@@ -17,6 +17,14 @@ class IspMaintenanceRepository
             $query->where('status', $filters['status']);
         }
 
+        if (isset($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (isset($filters['exclude_type'])) {
+            $query->where('type', '!=', $filters['exclude_type']);
+        }
+
         // Filter for Technicians: See own assignments, own reports, or pending (unassigned) tasks
         if (isset($filters['technician_isolation_id'])) {
             $userId = $filters['technician_isolation_id'];

@@ -159,9 +159,9 @@ export default function MaintenanceTab() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Laporan Gangguan (Maintenance)</h2>
+                    <h2 className="text-xl font-semibold tracking-tight">Laporan Gangguan (Maintenance) & Instalasi Baru</h2>
                     <p className="text-sm text-muted-foreground">
-                        Daftar laporan gangguan dari Reseller atau infrastruktur.
+                        Daftar laporan gangguan dari Reseller atau permintaan instalasi baru.
                     </p>
                 </div>
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

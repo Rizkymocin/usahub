@@ -71,8 +71,14 @@ class IspMaintenanceService
         }
 
         $this->repository->updateIssue($issue, $data);
+        $issue->refresh();
 
-        return $issue->fresh();
+        // Auto-activate reseller if installation is resolved
+        if (($data['status'] ?? null) === 'resolved' && $issue->type === 'installation') {
+            $issue->reseller()->update(['is_active' => true]);
+        }
+
+        return $issue;
     }
 
     public function logActivity(string $businessPublicId, string $issuePublicId, int $technicianId, array $data)
@@ -122,6 +128,11 @@ class IspMaintenanceService
         // Perform update if there are changes
         if (!empty($updateData)) {
             $this->repository->updateIssue($issue, $updateData);
+
+            // Auto-activate reseller if installation is resolved via log success
+            if (($updateData['status'] ?? null) === 'resolved' && $issue->type === 'installation') {
+                $issue->reseller()->update(['is_active' => true]);
+            }
         }
 
         return $log;

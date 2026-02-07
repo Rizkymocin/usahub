@@ -35,6 +35,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
     const history = ref<MaintenanceIssue[]>([]);
     const currentIssue = ref<MaintenanceIssue | null>(null);
     const items = ref<any[]>([]); // Maintenance Inventory Items
+    const installations = ref<MaintenanceIssue[]>([]);
     const loading = ref(false);
     const error = ref<string | null>(null);
 
@@ -46,7 +47,9 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
             // For now, we fetch all and filter client side or backend handles it.
             // Backend endpoint: /businesses/{public_id}/maintenance-issues
             // We might want to pass a param like ?my_assignments=true in future
-            const response = await axios.get(`/businesses/${businessId}/maintenance-issues`);
+            const response = await axios.get(`/businesses/${businessId}/maintenance-issues`, {
+                params: { exclude_type: 'installation' }
+            });
 
             const allIssues = response.data;
 
@@ -87,6 +90,21 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
             items.value = response.data;
         } catch (err: any) {
             console.error('Failed to fetch items', err);
+        }
+    }
+
+    async function fetchInstallations(businessId: string) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const response = await axios.get(`/businesses/${businessId}/maintenance-issues`, {
+                params: { type: 'installation' }
+            });
+            installations.value = response.data;
+        } catch (err: any) {
+            error.value = err.response?.data?.message || 'Gagal memuat antrian pasang';
+        } finally {
+            loading.value = false;
         }
     }
 
@@ -131,11 +149,13 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
         history,
         currentIssue,
         items,
+        installations,
         loading,
         error,
         fetchAssignments,
         fetchIssueDetail,
         fetchItems,
+        fetchInstallations,
         submitLog
     };
 });

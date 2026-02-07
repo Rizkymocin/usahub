@@ -52,7 +52,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reseller Routes
     Route::get('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'resellers']);
+    Route::get('/businesses/{public_id}/resellers/active', [\App\Http\Controllers\IspResellerController::class, 'getActive']);
+    Route::get('/businesses/{public_id}/resellers/inactive', [\App\Http\Controllers\IspResellerController::class, 'getInactive']);
     Route::post('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'storeReseller']);
+    Route::post('/businesses/{public_id}/resellers/{reseller_code}/activate', [\App\Http\Controllers\IspResellerController::class, 'activate']);
     Route::put('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'updateReseller']);
     Route::delete('/businesses/{public_id}/resellers/{reseller_code}', [\App\Http\Controllers\BusinessController::class, 'destroyReseller']);
 

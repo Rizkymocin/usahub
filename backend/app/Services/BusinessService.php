@@ -9,7 +9,9 @@ use App\Repositories\AccountRepository;
 use App\Repositories\IspResellerRepository;
 use App\Models\Business;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class BusinessService
 {
@@ -19,6 +21,7 @@ class BusinessService
     public $accountRepository;
     public $ispOutletService;
     public $ispResellerRepository;
+    public $ispMaintenanceService;
 
     public function __construct(
         BusinessRepository $repository,
@@ -26,7 +29,8 @@ class BusinessService
         TenantRepository $tenantRepository,
         AccountRepository $accountRepository,
         IspOutletService $ispOutletService,
-        IspResellerRepository $ispResellerRepository
+        IspResellerRepository $ispResellerRepository,
+        IspMaintenanceService $ispMaintenanceService
     ) {
         $this->repository = $repository;
         $this->userRepository = $userRepository;
@@ -34,6 +38,7 @@ class BusinessService
         $this->accountRepository = $accountRepository;
         $this->ispOutletService = $ispOutletService;
         $this->ispResellerRepository = $ispResellerRepository;
+        $this->ispMaintenanceService = $ispMaintenanceService;
     }
 
     public function listBusinesses(int $tenantId): Collection
@@ -337,16 +342,43 @@ class BusinessService
         // Generate Code: RES-{Timestamp}-{Random}
         $code = 'RES-' . now()->timestamp . '-' . Str::random(3);
 
-        return $this->ispResellerRepository->create([
-            'tenant_id' => $tenantId,
-            'outlet_id' => $outlet->id,
-            'code' => $code,
-            'name' => $data['name'],
-            'phone' => $data['phone'],
-            'address' => $data['address'] ?? null,
-            'is_active' => true,
-            'created_at' => now(),
-        ]);
+        return DB::transaction(function () use ($tenantId, $outlet, $code, $data, $business) {
+            // Create the reseller
+            $reseller = $this->ispResellerRepository->create([
+                'tenant_id' => $tenantId,
+                'business_id' => $business->id,
+                'outlet_id' => $outlet->id,
+                'code' => $code,
+                'name' => $data['name'],
+                'phone' => $data['phone'],
+                'address' => $data['address'] ?? null,
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
+                'is_active' => false,
+                'created_at' => now(),
+            ]);
+
+            // Create installation ticket
+            $description = "Instalasi baru untuk reseller: {$reseller->name}\n";
+            $description .= "Kode: {$reseller->code}\n";
+            $description .= "Telepon: {$reseller->phone}\n";
+            if ($reseller->address) {
+                $description .= "Alamat: {$reseller->address}\n";
+            }
+            if ($reseller->latitude && $reseller->longitude) {
+                $description .= "Lokasi: {$reseller->latitude}, {$reseller->longitude}";
+            }
+
+            $this->ispMaintenanceService->createIssue($business->public_id, Auth::id() ?? 1, [
+                'type' => 'installation',
+                'title' => 'Instalasi Baru: ' . $reseller->name, // Add title as it is required in IspMaintenanceService
+                'priority' => 'high',
+                'description' => $description,
+                'reseller_id' => $reseller->id,
+            ]);
+
+            return $reseller;
+        });
     }
 
     public function updateBusinessReseller(string $businessPublicId, string $resellerCode, int $tenantId, array $data): bool

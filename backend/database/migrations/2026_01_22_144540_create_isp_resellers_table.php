@@ -20,6 +20,10 @@ return new class extends Migration {
                 ->on('isp_outlets')
                 ->onDelete('cascade');
 
+            $table->foreignId('business_id')
+                ->constrained('businesses')
+                ->onDelete('cascade');
+
             $table->string('code')->unique();
             $table->string('name');
             $table->string('phone');

@@ -19,18 +19,25 @@ export interface Reseller {
 
 interface ResellerState {
     resellers: Reseller[];
+    activeResellers: Reseller[];
+    inactiveResellers: Reseller[];
     currentBusinessId: string | null;
     isLoading: boolean;
     error: string | null;
 
     fetchResellers: (businessId: string) => Promise<void>;
+    fetchActiveResellers: (businessId: string) => Promise<void>;
+    fetchInactiveResellers: (businessId: string) => Promise<void>;
     addReseller: (businessId: string, data: { outlet_public_id: string; name: string; phone: string; address: string }) => Promise<void>;
     updateReseller: (businessId: string, resellerCode: string, data: any) => Promise<void>;
     deleteReseller: (businessId: string, resellerCode: string) => Promise<void>;
+    activateReseller: (businessId: string, resellerCode: string) => Promise<void>;
 }
 
 export const useResellerStore = create<ResellerState>((set, get) => ({
     resellers: [],
+    activeResellers: [],
+    inactiveResellers: [],
     currentBusinessId: null,
     isLoading: false,
     error: null,
@@ -59,15 +66,53 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
         }
     },
 
+    fetchActiveResellers: async (businessId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const res = await axios.get(`businesses/${businessId}/resellers/active`);
+            console.log('Active Resellers Response:', res.data);
+            set({
+                activeResellers: res.data.data,
+                currentBusinessId: businessId,
+                isLoading: false
+            });
+        } catch (error: any) {
+            console.error('Error fetching active resellers:', error);
+            set({
+                error: error.response?.data?.message || 'Gagal memuat reseller aktif',
+                isLoading: false
+            });
+        }
+    },
+
+    fetchInactiveResellers: async (businessId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const res = await axios.get(`businesses/${businessId}/resellers/inactive`);
+            console.log('Inactive Resellers Response:', res.data);
+            set({
+                inactiveResellers: res.data.data,
+                currentBusinessId: businessId,
+                isLoading: false
+            });
+        } catch (error: any) {
+            console.error('Error fetching inactive resellers:', error);
+            set({
+                error: error.response?.data?.message || 'Gagal memuat reseller baru',
+                isLoading: false
+            });
+        }
+    },
+
     addReseller: async (businessId: string, data) => {
         set({ isLoading: true, error: null });
         try {
             await axios.post(`businesses/${businessId}/resellers`, data);
 
-            // Refetch to ensure fresh data
-            const res = await axios.get(`businesses/${businessId}/resellers`);
+            // Refetch inactive resellers since new ones are inactive by default
+            const res = await axios.get(`businesses/${businessId}/resellers/inactive`);
             set({
-                resellers: res.data.data,
+                inactiveResellers: res.data.data,
                 currentBusinessId: businessId,
                 isLoading: false
             });
@@ -86,10 +131,15 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
         try {
             await axios.put(`businesses/${businessId}/resellers/${resellerCode}`, data);
 
-            // Refetch
-            const res = await axios.get(`businesses/${businessId}/resellers`);
+            // Refetch both lists
+            const [activeRes, inactiveRes] = await Promise.all([
+                axios.get(`businesses/${businessId}/resellers/active`),
+                axios.get(`businesses/${businessId}/resellers/inactive`)
+            ]);
+
             set({
-                resellers: res.data.data,
+                activeResellers: activeRes.data.data,
+                inactiveResellers: inactiveRes.data.data,
                 currentBusinessId: businessId,
                 isLoading: false
             });
@@ -107,16 +157,47 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
         try {
             await axios.delete(`businesses/${businessId}/resellers/${resellerCode}`);
 
-            // Refetch
-            const res = await axios.get(`businesses/${businessId}/resellers`);
+            // Refetch both lists
+            const [activeRes, inactiveRes] = await Promise.all([
+                axios.get(`businesses/${businessId}/resellers/active`),
+                axios.get(`businesses/${businessId}/resellers/inactive`)
+            ]);
+
             set({
-                resellers: res.data.data,
+                activeResellers: activeRes.data.data,
+                inactiveResellers: inactiveRes.data.data,
                 currentBusinessId: businessId,
                 isLoading: false
             });
         } catch (error: any) {
             set({
                 error: error.response?.data?.message || 'Gagal menghapus reseller',
+                isLoading: false
+            });
+            throw error;
+        }
+    },
+
+    activateReseller: async (businessId: string, resellerCode: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            await axios.post(`businesses/${businessId}/resellers/${resellerCode}/activate`);
+
+            // Refetch both lists
+            const [activeRes, inactiveRes] = await Promise.all([
+                axios.get(`businesses/${businessId}/resellers/active`),
+                axios.get(`businesses/${businessId}/resellers/inactive`)
+            ]);
+
+            set({
+                activeResellers: activeRes.data.data,
+                inactiveResellers: inactiveRes.data.data,
+                currentBusinessId: businessId,
+                isLoading: false
+            });
+        } catch (error: any) {
+            set({
+                error: error.response?.data?.message || 'Gagal mengaktifkan reseller',
                 isLoading: false
             });
             throw error;
