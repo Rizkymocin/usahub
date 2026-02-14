@@ -22,6 +22,7 @@ class RegisterTenantRequest extends FormRequest
 
             // Tenant validation
             'business_name' => 'required|string|max:255',
+            'category' => 'required|string|in:isp,atk,cafe,toko',
             'plan_id' => 'sometimes|exists:plans,id',
         ];
     }

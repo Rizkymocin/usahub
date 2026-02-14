@@ -4,11 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\VoucherSale;
 use App\Models\VoucherSalePayment;
+use App\Services\VoucherSalePaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class VoucherSalePaymentController extends Controller
 {
+    protected $paymentService;
+
+    public function __construct(VoucherSalePaymentService $paymentService)
+    {
+        $this->paymentService = $paymentService;
+    }
+
     /**
      * Store a newly created payment in storage.
      */
@@ -41,24 +49,20 @@ class VoucherSalePaymentController extends Controller
         }
 
         try {
-            DB::beginTransaction();
-
-            $sale->addPayment(
+            $payment = $this->paymentService->recordPayment(
+                $sale,
                 $request->amount,
                 $request->user()->id,
                 $request->payment_method,
                 $request->note
             );
 
-            DB::commit();
-
             return response()->json([
                 'success' => true,
                 'message' => 'Payment recorded successfully.',
-                'data' => $sale->load('payments'),
+                'data' => $sale->fresh()->load('payments'),
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record payment: ' . $e->getMessage(),

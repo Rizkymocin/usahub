@@ -322,7 +322,7 @@ class BusinessController extends Controller
         ]);
 
         try {
-            $reseller = $this->service->createBusinessReseller($validated, $business_public_id, $tenantId);
+            $reseller = $this->service->createBusinessReseller($validated, $business_public_id, $tenantId, $user->id);
             return response()->json([
                 'success' => true,
                 'message' => 'Reseller added successfully',

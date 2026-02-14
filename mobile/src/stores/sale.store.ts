@@ -27,6 +27,8 @@ export const useSaleStore = defineStore('sale', () => {
     const customerPhone = ref('');
     const paymentMethod = ref<'cash' | 'partial' | 'credit'>('cash');
     const paidAmount = ref(0);
+    const isPrepaid = ref(false);
+    const pendingDeliveries = ref<any[]>([]);
     const loading = ref(false);
     const error = ref<string | null>(null);
 
@@ -115,6 +117,7 @@ export const useSaleStore = defineStore('sale', () => {
         customerName.value = '';
         customerPhone.value = '';
         recipientId.value = null;
+        isPrepaid.value = false;
     }
 
     async function submitSale() {
@@ -134,7 +137,8 @@ export const useSaleStore = defineStore('sale', () => {
                     voucher_product_id: item.voucher_product_id,
                     quantity: item.quantity,
                     unit_price: item.unit_price
-                }))
+                })),
+                is_prepaid: isPrepaid.value
             };
 
             // Add conditional fields
@@ -205,6 +209,42 @@ export const useSaleStore = defineStore('sale', () => {
         }
     }
 
+    async function fetchPendingDeliveries() {
+        if (!auth.user?.business_public_id) return;
+        try {
+            const response = await axios.get(`/businesses/${auth.user.business_public_id}/voucher-sales/pending-delivery`);
+            if (response.data.success) {
+                pendingDeliveries.value = response.data.data;
+            }
+        } catch (err) {
+            console.error('Failed to fetch pending deliveries:', err);
+        }
+    }
+
+    async function markAsDelivered(salePublicId: string, deliveredItems: { voucher_product_id: number, delivered_qty: number }[], deliveryNote?: string) {
+        if (!auth.user?.business_public_id) throw new Error("Business ID not found");
+
+        try {
+            const response = await axios.post(
+                `/businesses/${auth.user.business_public_id}/voucher-sales/${salePublicId}/mark-delivered`,
+                {
+                    items: deliveredItems,
+                    delivery_note: deliveryNote
+                }
+            );
+
+            if (response.data.success) {
+                // Refresh pending deliveries
+                await fetchPendingDeliveries();
+                return response.data.data;
+            } else {
+                throw new Error(response.data.message || 'Failed to mark as delivered');
+            }
+        } catch (err: any) {
+            throw err;
+        }
+    }
+
     return {
         items,
         channelType,
@@ -214,6 +254,8 @@ export const useSaleStore = defineStore('sale', () => {
         customerPhone,
         paymentMethod,
         paidAmount,
+        isPrepaid,
+        pendingDeliveries,
         loading,
         error,
         totalAmount,
@@ -226,6 +268,8 @@ export const useSaleStore = defineStore('sale', () => {
         clearCart,
         submitSale,
         fetchDebts,
-        submitDebtPayment
+        submitDebtPayment,
+        fetchPendingDeliveries,
+        markAsDelivered
     };
 });

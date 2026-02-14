@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // import User from "./User" // Need to locate correct path or duplicate these components if they rely on specific path params/context
-import Accounts from "./Accounts" // Reusing components from sibling
+import Accounts from "../../accounting/[public_id]/Accounts" // Reusing components from sibling
 import User from "./User" // Reusing components from sibling
 
 // We need to check if these components (Accounts, User, etc.) use `useParams()`.
@@ -45,6 +45,8 @@ import VoucherSales from "./VoucherSales"
 import VoucherStockTab from "./VoucherStockTab"
 import MaintenanceTab from "./MaintenanceTab"
 import VoucherAllocations from "./VoucherAllocations"
+import MobileAnnouncement from "./MobileAnnouncement"
+import CalonPasangBaru from "./CalonPasangBaru"
 
 
 export default function DetailUsahaAdminPage() {
@@ -79,19 +81,17 @@ export default function DetailUsahaAdminPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="account" className="space-y-4">
+            <Tabs defaultValue="users" className="space-y-4">
                 <TabsList className="w-full bg-primary text-primary-foreground">
-                    <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="account">Akun (COA)</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="users">Pengguna</TabsTrigger>
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="outlets">Outlet</TabsTrigger>}
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="resellers">Reseller</TabsTrigger>}
                     {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="voucher-main">Voucher</TabsTrigger>}
-                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="maintenance">Gangguan/Instalasi</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="maintenance">Gangguan</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="calon-pasang-baru">Pasang Baru</TabsTrigger>}
+                    {isMounted && business?.category === 'isp' && <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="mobile_anouncement">Pengumuman</TabsTrigger>}
                 </TabsList>
 
-                <TabsContent value="account" className="space-y-4">
-                    <Accounts />
-                </TabsContent>
                 <TabsContent value="users">
                     <User />
                 </TabsContent >
@@ -119,6 +119,8 @@ export default function DetailUsahaAdminPage() {
                 )}
 
                 {isMounted && business?.category === 'isp' && <TabsContent value="maintenance"><MaintenanceTab /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="calon-pasang-baru"><CalonPasangBaru /></TabsContent>}
+                {isMounted && business?.category === 'isp' && <TabsContent value="mobile_anouncement"><MobileAnnouncement /></TabsContent>}
             </Tabs >
         </div >
     )

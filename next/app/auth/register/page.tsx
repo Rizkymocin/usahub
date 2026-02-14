@@ -28,7 +28,8 @@ export default function RegisterPage() {
                 password: data.password,
                 password_confirmation: data.password_confirmation,
                 business_name: data.business_name,
-                plan_id: data.plan_id
+                plan_id: data.plan_id,
+                category: data.category
             }
 
             const response = await registerRequest(registerData)

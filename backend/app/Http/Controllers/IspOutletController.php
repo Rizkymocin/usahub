@@ -70,19 +70,4 @@ class IspOutletController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
     }
-
-    public function topup(IspOutletTopupRequest $request, string $businessPublicId, int $outletId): JsonResponse
-    {
-        $tenantId = $this->resolveTenantId($request, $businessPublicId);
-        if (!$tenantId) {
-            return response()->json(['success' => false, 'message' => 'Access denied'], 404);
-        }
-
-        try {
-            $topup = $this->service->topupOutlet($outletId, $tenantId, $request->validated()['amount']);
-            return response()->json(['success' => true, 'data' => $topup], 201);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
-        }
-    }
 }

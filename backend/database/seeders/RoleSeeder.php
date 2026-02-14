@@ -26,7 +26,5 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'teknisi_maintenance']);
         Role::firstOrCreate(['name' => 'teknisi_pasang_baru']);
         Role::firstOrCreate(['name' => 'sales']);
-        Role::firstOrCreate(['name' => 'isp_outlet']);
-        Role::firstOrCreate(['name' => 'isp_teknisi']);
     }
 }

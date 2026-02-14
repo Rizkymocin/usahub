@@ -121,9 +121,27 @@
                 </DialogTitle>
                 
                 <div v-if="selectedSale" class="space-y-4">
-                  <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <p class="text-xs text-slate-500 mb-1">Total Hutang</p>
-                    <p class="text-xl font-black text-slate-900">Rp {{ formatCurrency(selectedSale.remaining_amount) }}</p>
+                  <!-- Voucher Items -->
+                  <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Item Voucher</p>
+                    <div class="space-y-2">
+                      <div 
+                        v-for="item in selectedSale.items" 
+                        :key="item.id"
+                        class="flex justify-between items-center text-sm"
+                      >
+                        <span class="text-slate-600">
+                          <span class="font-bold text-slate-800">{{ item.quantity }}x</span> 
+                          {{ item.voucher_product?.name || `Voucher #${item.voucher_product_id}` }}
+                        </span>
+                        <span class="font-bold text-slate-900">Rp {{ formatCurrency(item.subtotal) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <p class="text-xs text-indigo-600 font-medium mb-1">Sisa Hutang</p>
+                    <p class="text-xl font-black text-indigo-900">Rp {{ formatCurrency(selectedSale.remaining_amount) }}</p>
                   </div>
 
                   <div>

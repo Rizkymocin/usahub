@@ -5,7 +5,7 @@ import axios from "@/lib/axios"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Eye } from "lucide-react"
+import { Building2, Eye } from "lucide-react"
 import Link from "next/link"
 import { Business } from "@/types/business"
 
@@ -42,9 +42,6 @@ export default function AdminUsahaPage() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Data Usaha</CardTitle>
-                </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <div className="text-center py-4">Loading...</div>
@@ -63,9 +60,12 @@ export default function AdminUsahaPage() {
                                     {businesses.map((business) => (
                                         <tr key={business.public_id} className="hover:bg-muted/50">
                                             <td className="p-4 font-medium">
-                                                <Link href={`/dashboard/admin/usaha/${business.public_id}`} className="hover:underline text-primary">
-                                                    {business.name}
-                                                </Link>
+                                                <div className="flex items-center gap-2 hover:text-primary">
+                                                    <Building2 className="h-4 w-4 text-gray-500" />
+                                                    <Link href={`/dashboard/admin/usaha/${business.public_id}`} className="hover:underline text-primary">
+                                                        {business.name}
+                                                    </Link>
+                                                </div>
                                             </td>
                                             <td className="p-4">
                                                 <Badge variant="secondary" className="uppercase">

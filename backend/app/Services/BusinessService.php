@@ -8,6 +8,7 @@ use App\Repositories\TenantRepository;
 use App\Repositories\AccountRepository;
 use App\Repositories\IspResellerRepository;
 use App\Models\Business;
+use App\Models\IspResellerRegistration;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -95,8 +96,9 @@ class BusinessService
     private function createDefaultAccounts(Business $business)
     {
         $rootAccounts = [
-            ['code' => '1000', 'name' => 'Aset Lancar', 'type' => 'asset'],
+            ['code' => '1000', 'name' => 'Aset', 'type' => 'asset'],
             ['code' => '2000', 'name' => 'Kewajiban', 'type' => 'liability'],
+            ['code' => '3000', 'name' => 'Modal', 'type' => 'equity'],
             ['code' => '4000', 'name' => 'Pendapatan', 'type' => 'revenue'],
             ['code' => '5000', 'name' => 'Beban', 'type' => 'expense'],
         ];
@@ -120,19 +122,37 @@ class BusinessService
         }
 
         $childAccounts = [
-            // Aset Lancar (1000)
+            // Aset (1000)
             ['code' => '1010', 'name' => 'Kas', 'type' => 'asset', 'parent' => '1000'],
             ['code' => '1020', 'name' => 'Bank', 'type' => 'asset', 'parent' => '1000'],
+            ['code' => '1030', 'name' => 'Piutang', 'type' => 'asset', 'parent' => '1000'],
+            ['code' => '1040', 'name' => 'Persediaan Bahan', 'type' => 'asset', 'parent' => '1000'],
+            ['code' => '1050', 'name' => 'Peralatan Jaringan', 'type' => 'asset', 'parent' => '1000'],
 
             // Kewajiban (2000)
-            ['code' => '2010', 'name' => 'Deposit Outlet', 'type' => 'liability', 'parent' => '2000'],
-            ['code' => '2020', 'name' => 'Utang Fee Reseller', 'type' => 'liability', 'parent' => '2000'],
+            ['code' => '2010', 'name' => 'Utang Voucher', 'type' => 'liability', 'parent' => '2000'],
+            ['code' => '2020', 'name' => 'Hutang Komisi', 'type' => 'liability', 'parent' => '2000'],
+            ['code' => '2030', 'name' => 'Pendapatan Diterima Dimuka', 'type' => 'liability', 'parent' => '2000'],
+
+            // Modal (3000)
+            ['code' => '3010', 'name' => 'Modal Pemilik', 'type' => 'equity', 'parent' => '3000'],
+            ['code' => '3020', 'name' => 'Laba Ditahan', 'type' => 'equity', 'parent' => '3000'],
+            ['code' => '3030', 'name' => 'Saham Pihak Ketiga', 'type' => 'equity', 'parent' => '3000'],
 
             // Pendapatan (4000)
             ['code' => '4010', 'name' => 'Penjualan Voucher Internet', 'type' => 'revenue', 'parent' => '4000'],
 
             // Beban (5000)
-            ['code' => '5010', 'name' => 'Fee Reseller', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5010', 'name' => 'Beban Maintenance Jaringan', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5020', 'name' => 'Biaya Komisi Sales', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5030', 'name' => 'Beban Jasa Teknisi', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5050', 'name' => 'Beban ATK & Operasional', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5060', 'name' => 'Beban Belanja Ditahan', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5070', 'name' => 'Pajak Perusahaan (PPh 12%)', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5080', 'name' => 'Pajak ISP (10%)', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5090', 'name' => 'Simpanan Pokok Koperasi', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5100', 'name' => 'Simpanan Wajib Koperasi', 'type' => 'expense', 'parent' => '5000'],
+            ['code' => '5110', 'name' => 'Iuran Koperasi', 'type' => 'expense', 'parent' => '5000'],
         ];
 
         foreach ($childAccounts as $acc) {
@@ -147,6 +167,38 @@ class BusinessService
                 'parent_id'   => $parents[$acc['parent']],
             ]);
         }
+
+        // Create default accounting rules
+        $this->createDefaultAccountingRules($business);
+    }
+
+    private function createDefaultAccountingRules(Business $business)
+    {
+        // Get account IDs for this business
+        $accounts = [];
+        $accountCodes = ['1010', '1030', '1050', '2010', '2020', '2030', '4010', '5010', '5020'];
+
+        foreach ($accountCodes as $code) {
+            $account = \App\Models\Account::where('business_id', $business->id)
+                ->where('code', $code)
+                ->first();
+
+            if ($account) {
+                $accounts[$code] = $account->id;
+            }
+        }
+
+        if (empty($accounts)) {
+            \Log::warning("No accounts found for business {$business->id}, skipping accounting rules");
+            return;
+        }
+
+        // Use the AccountingRulesSeeder logic
+        $seeder = new \Database\Seeders\AccountingRulesSeeder();
+        $reflection = new \ReflectionClass($seeder);
+        $method = $reflection->getMethod('seedRulesForBusiness');
+        $method->setAccessible(true);
+        $method->invoke($seeder, $business->tenant_id, $business->id, $accounts);
     }
 
     private function createDefaultOutlet(Business $business, int $tenantId)
@@ -315,7 +367,7 @@ class BusinessService
         return $business->resellers()->with('outlet')->get();
     }
 
-    public function createBusinessReseller(array $data, string $businessPublicId, int $tenantId): \App\Models\IspReseller
+    public function createBusinessReseller(array $data, string $businessPublicId, int $tenantId, int $salesId): \App\Models\IspReseller
     {
         $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
         if (!$business) {
@@ -354,27 +406,8 @@ class BusinessService
                 'address' => $data['address'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'is_active' => false,
+                'is_active' => $data['is_active'] ?? true,
                 'created_at' => now(),
-            ]);
-
-            // Create installation ticket
-            $description = "Instalasi baru untuk reseller: {$reseller->name}\n";
-            $description .= "Kode: {$reseller->code}\n";
-            $description .= "Telepon: {$reseller->phone}\n";
-            if ($reseller->address) {
-                $description .= "Alamat: {$reseller->address}\n";
-            }
-            if ($reseller->latitude && $reseller->longitude) {
-                $description .= "Lokasi: {$reseller->latitude}, {$reseller->longitude}";
-            }
-
-            $this->ispMaintenanceService->createIssue($business->public_id, Auth::id() ?? 1, [
-                'type' => 'installation',
-                'title' => 'Instalasi Baru: ' . $reseller->name, // Add title as it is required in IspMaintenanceService
-                'priority' => 'high',
-                'description' => $description,
-                'reseller_id' => $reseller->id,
             ]);
 
             return $reseller;

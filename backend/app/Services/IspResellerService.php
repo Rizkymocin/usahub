@@ -4,22 +4,29 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\IspReseller;
+use App\Models\IspResellerRegistration;
 use App\Repositories\IspResellerRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 use App\Services\IspMaintenanceService;
+use App\Services\AccountingRuleEngine;
 
 class IspResellerService
 {
     protected $resellerRepository;
     protected $maintenanceService;
+    protected $accountingRuleEngine;
 
-    public function __construct(IspResellerRepository $resellerRepository, IspMaintenanceService $maintenanceService)
-    {
+    public function __construct(
+        IspResellerRepository $resellerRepository,
+        IspMaintenanceService $maintenanceService,
+        AccountingRuleEngine $accountingRuleEngine
+    ) {
         $this->resellerRepository = $resellerRepository;
         $this->maintenanceService = $maintenanceService;
+        $this->accountingRuleEngine = $accountingRuleEngine;
     }
 
     public function getBusinessResellers(int $businessId): Collection
@@ -76,7 +83,50 @@ class IspResellerService
             // Create Installation Maintenance Ticket
             $this->createInstallationTicket($business, $reseller, $reporterId);
 
+            // Record Registration by Sales
+            IspResellerRegistration::create([
+                'business_id' => $business->id,
+                'reseller_id' => $reseller->id,
+                'sales_id' => $reporterId,
+                'status' => 'pending',
+                'amount' => 0, // Default or logic-based amount
+            ]);
+
+            // Log Activity
+            activity()
+                ->causedBy(\App\Models\User::find($reporterId))
+                ->performedOn($reseller)
+                ->withProperties([
+                    'name' => $reseller->name,
+                    'code' => $reseller->code
+                ])
+                ->event('registered')
+                ->log('Sales registered new reseller');
+
             return $reseller;
+        });
+    }
+
+    /**
+     * Approve a reseller registration and emit accounting event
+     */
+    public function approveRegistration(int $registrationId, float $commissionAmount, int $approvedBy): IspResellerRegistration
+    {
+        return DB::transaction(function () use ($registrationId, $commissionAmount, $approvedBy) {
+            $registration = IspResellerRegistration::with(['business', 'reseller', 'sales'])->findOrFail($registrationId);
+
+            // Validate not already approved
+            if ($registration->status === 'approved') {
+                throw new Exception("Registration already approved");
+            }
+
+            // Update registration
+            $registration->update([
+                'status' => 'approved',
+                'amount' => $commissionAmount,
+            ]);
+
+            return $registration->fresh();
         });
     }
 

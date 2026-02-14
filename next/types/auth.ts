@@ -3,6 +3,7 @@ export interface User {
     name: string;
     email: string;
     role?: string;
+    business_public_id?: string;
 }
 
 export interface AuthState {
@@ -23,5 +24,6 @@ export interface RegisterData {
     password: string;
     password_confirmation: string;
     business_name: string;
+    category?: string;
     plan_id?: number;
 }

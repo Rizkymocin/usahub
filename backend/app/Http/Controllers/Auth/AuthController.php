@@ -56,7 +56,13 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if ($user) {
+            // Dispatch Logout event for activity logging
+            event(new \Illuminate\Auth\Events\Logout('web', $user));
+            $user->currentAccessToken()->delete();
+        }
 
         return response()->json([
             'status' => true,

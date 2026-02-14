@@ -52,6 +52,7 @@ class MobileAuthController extends Controller
             'message' => 'Login successful',
             'data' => [
                 'user' => array_merge($user->toArray(), [
+                    'id' => $user->id,
                     'roles' => $roles,
                     'business' => $business,
                     'business_public_id' => $business ? $business->public_id : null,
@@ -93,6 +94,7 @@ class MobileAuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => array_merge($user->toArray(), [
+                'id' => $user->id,
                 'roles' => $roles,
                 'business' => $business,
                 'business_public_id' => $business ? $business->public_id : null,

@@ -6,13 +6,15 @@ import { useVoucherSaleStore, VoucherSale, VoucherSaleItem } from "@/stores/vouc
 import { useBusiness } from "@/stores/business.selectors"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Loader2, Eye, Banknote } from "lucide-react"
+import { Plus, Search, Loader2, Eye, Banknote, Truck, Package } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
@@ -29,7 +31,7 @@ export default function VoucherSales() {
     const business = useBusiness()
 
     // Store
-    const { sales, isLoading, fetchSales, createSale, addPayment } = useVoucherSaleStore()
+    const { sales, pendingDeliveries, isLoading, fetchSales, createSale, addPayment, fetchPendingDeliveries, markAsDelivered } = useVoucherSaleStore()
 
     // Local State for Create Dialog
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -40,6 +42,7 @@ export default function VoucherSales() {
     const [saleItems, setSaleItems] = useState<{ productId: string, qty: number }[]>([{ productId: "", qty: 1 }])
     const [paymentMethod, setPaymentMethod] = useState<"cash" | "partial" | "credit">("cash")
     const [paidAmount, setPaidAmount] = useState<string>("")
+    const [isPrepaid, setIsPrepaid] = useState(false)
 
     // Data for dropdowns
     const [outlets, setOutlets] = useState<Outlet[]>([])
@@ -51,10 +54,20 @@ export default function VoucherSales() {
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [paymentAmount, setPaymentAmount] = useState<string>("")
 
+    // Delivery Dialog
+    const [isDeliveryOpen, setIsDeliveryOpen] = useState(false)
+    const [deliverySale, setDeliverySale] = useState<VoucherSale | null>(null)
+    const [deliveryItems, setDeliveryItems] = useState<{ voucher_product_id: number, delivered_qty: number, max_qty: number, product_name: string }[]>([])
+    const [deliveryNote, setDeliveryNote] = useState("")
+
+    // Filter
+    const [statusFilter, setStatusFilter] = useState<string>("all")
+
     // Fetch initial data
     useEffect(() => {
         if (finalPublicId) {
             fetchSales(finalPublicId)
+            fetchPendingDeliveries(finalPublicId)
             fetchDropdownData()
         }
     }, [finalPublicId])
@@ -120,6 +133,7 @@ export default function VoucherSales() {
                 reseller_id: channelType === 'reseller' ? parseInt(selectedReseller) : null,
                 payment_method: paymentMethod,
                 paid_amount: paymentMethod === 'credit' ? 0 : (paidAmount ? parseFloat(paidAmount) : totalAmount),
+                is_prepaid: isPrepaid,
                 items: saleItems.map(item => ({
                     voucher_product_id: parseInt(item.productId),
                     quantity: item.qty
@@ -129,9 +143,10 @@ export default function VoucherSales() {
             if (!finalPublicId) return
 
             await createSale(finalPublicId, payload)
-            toast.success("Penjualan voucher berhasil dibuat")
+            toast.success(isPrepaid ? "Penjualan reserved berhasil dibuat" : "Penjualan voucher berhasil dibuat")
             setIsCreateOpen(false)
             resetForm()
+            if (isPrepaid && finalPublicId) fetchPendingDeliveries(finalPublicId)
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal membuat penjualan"
             toast.error(msg)
@@ -146,6 +161,7 @@ export default function VoucherSales() {
         setPaidAmount("")
         setSelectedOutlet("")
         setSelectedReseller("")
+        setIsPrepaid(false)
     }
 
     const handleAddPayment = async () => {
@@ -161,9 +177,44 @@ export default function VoucherSales() {
             if (updated) setSelectedSale(updated)
             else fetchSales(finalPublicId)
 
-            // Close detail dialog if fully paid? optional
         } catch (error: any) {
             const msg = error.response?.data?.message || "Gagal menambah pembayaran"
+            toast.error(msg)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const openDeliveryDialog = (sale: VoucherSale) => {
+        setDeliverySale(sale)
+        setDeliveryItems(sale.items.map(item => ({
+            voucher_product_id: item.voucher_product_id,
+            delivered_qty: item.quantity,
+            max_qty: item.quantity,
+            product_name: item.voucher_product?.name || `Product #${item.voucher_product_id}`
+        })))
+        setDeliveryNote("")
+        setIsDeliveryOpen(true)
+    }
+
+    const handleMarkDelivered = async () => {
+        if (!deliverySale || !finalPublicId) return
+
+        setIsSubmitting(true)
+        try {
+            await markAsDelivered(finalPublicId, deliverySale.public_id, {
+                items: deliveryItems.map(item => ({
+                    voucher_product_id: item.voucher_product_id,
+                    delivered_qty: item.delivered_qty
+                })),
+                delivery_note: deliveryNote || undefined
+            })
+            toast.success("Penjualan berhasil ditandai terkirim")
+            setIsDeliveryOpen(false)
+            setDeliverySale(null)
+            fetchSales(finalPublicId)
+        } catch (error: any) {
+            const msg = error.response?.data?.message || "Gagal menandai pengiriman"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -174,6 +225,35 @@ export default function VoucherSales() {
         return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(val)
     }
 
+    const getStatusBadge = (sale: VoucherSale) => {
+        if (sale.status === 'reserved') {
+            return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">Reserved</Badge>
+        }
+        if (sale.status === 'completed') {
+            return <Badge variant="default">Selesai</Badge>
+        }
+        if (sale.status === 'partial_debt') {
+            return <Badge variant="secondary">Sebagian Lunas</Badge>
+        }
+        if (sale.status === 'full_debt') {
+            return <Badge variant="destructive">Belum Lunas</Badge>
+        }
+        // Fallback to payment_status for older records
+        if (sale.payment_status === 'paid') return <Badge variant="default">Lunas</Badge>
+        if (sale.payment_status === 'partial') return <Badge variant="secondary">Sebagian</Badge>
+        return <Badge variant="destructive">Belum Bayar</Badge>
+    }
+
+    // Filter sales
+    const filteredSales = useMemo(() => {
+        if (statusFilter === 'all') return sales
+        if (statusFilter === 'reserved') return sales.filter(s => s.status === 'reserved')
+        if (statusFilter === 'completed') return sales.filter(s => s.status === 'completed')
+        if (statusFilter === 'pending') return sales.filter(s => s.is_prepaid && !s.delivered_at)
+        if (statusFilter === 'debt') return sales.filter(s => s.status === 'partial_debt' || s.status === 'full_debt')
+        return sales
+    }, [sales, statusFilter])
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -183,140 +263,174 @@ export default function VoucherSales() {
                         Kelola penjualan voucher ke Outlet dan Reseller
                     </p>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Penjualan Baru
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Buat Penjualan Voucher Baru</DialogTitle>
-                            <DialogDescription>Input data penjualan voucher ke outlet atau reseller</DialogDescription>
-                        </DialogHeader>
+                <div className="flex items-center gap-2">
+                    {/* Status Filter */}
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[160px]">
+                            <SelectValue placeholder="Filter Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua</SelectItem>
+                            <SelectItem value="completed">Selesai</SelectItem>
+                            <SelectItem value="reserved">Reserved</SelectItem>
+                            <SelectItem value="pending">Belum Dikirim</SelectItem>
+                            <SelectItem value="debt">Hutang</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                        <div className="space-y-4 py-2">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Tujuan Penjualan</Label>
-                                    <Select value={channelType} onValueChange={(v: any) => setChannelType(v)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="outlet">Outlet</SelectItem>
-                                            <SelectItem value="reseller">Reseller</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> Penjualan Baru
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Buat Penjualan Voucher Baru</DialogTitle>
+                                <DialogDescription>Input data penjualan voucher ke outlet atau reseller</DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-4 py-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Tujuan Penjualan</Label>
+                                        <Select value={channelType} onValueChange={(v: any) => setChannelType(v)}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="outlet">Outlet</SelectItem>
+                                                <SelectItem value="reseller">Reseller</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{channelType === 'outlet' ? 'Pilih Outlet' : 'Pilih Reseller'}</Label>
+                                        {channelType === 'outlet' ? (
+                                            <Select value={selectedOutlet} onValueChange={setSelectedOutlet}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Pilih Outlet" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {outlets.map(o => (
+                                                        <SelectItem key={o.id} value={o.id.toString()}>{o.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Select value={selectedReseller} onValueChange={setSelectedReseller}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Pilih Reseller" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {resellers.map(r => (
+                                                        <SelectItem key={r.id} value={r.id.toString()}>{r.name} ({r.code})</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>{channelType === 'outlet' ? 'Pilih Outlet' : 'Pilih Reseller'}</Label>
-                                    {channelType === 'outlet' ? (
-                                        <Select value={selectedOutlet} onValueChange={setSelectedOutlet}>
+
+                                <div className="border rounded-md p-4 space-y-4">
+                                    <Label>Item Penjualan</Label>
+                                    {saleItems.map((item, index) => (
+                                        <div key={index} className="flex gap-2 items-end">
+                                            <div className="flex-1 space-y-1">
+                                                <Label className="text-xs">Produk Voucher</Label>
+                                                <Select value={item.productId} onValueChange={(v) => handleItemChange(index, 'productId', v)}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih Produk" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {products.map(p => (
+                                                            <SelectItem key={p.id} value={p.id.toString()} disabled={p.stock <= 0 && !isPrepaid}>
+                                                                {p.name} (Stok: {p.stock} | {formatCurrency(p.price)})
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="w-24 space-y-1">
+                                                <Label className="text-xs">Qty</Label>
+                                                <Input
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.qty}
+                                                    onChange={(e) => handleItemChange(index, 'qty', parseInt(e.target.value) || 0)}
+                                                />
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} disabled={saleItems.length === 1}>
+                                                X
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button variant="outline" size="sm" onClick={handleAddItem} className="w-full">
+                                        + Tambah Item
+                                    </Button>
+                                </div>
+
+                                <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                                    <span className="font-semibold">Total Tagihan:</span>
+                                    <span className="text-lg font-bold text-primary">{formatCurrency(totalAmount)}</span>
+                                </div>
+
+                                {/* Prepaid / Deliver Later Checkbox */}
+                                <div className="flex items-center space-x-3 p-3 border rounded-md bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+                                    <Checkbox
+                                        id="isPrepaid"
+                                        checked={isPrepaid}
+                                        onCheckedChange={(checked) => setIsPrepaid(checked === true)}
+                                    />
+                                    <div className="flex-1">
+                                        <Label htmlFor="isPrepaid" className="font-medium cursor-pointer">
+                                            <Package className="inline h-4 w-4 mr-1 text-amber-600" />
+                                            Kirim Nanti (Prepaid/Reserved)
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Pembayaran diterima sekarang, voucher dikirim nanti. Stok akan dialokasikan.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Metode Pembayaran</Label>
+                                        <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Pilih Outlet" />
+                                                <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {outlets.map(o => (
-                                                    <SelectItem key={o.id} value={o.id.toString()}>{o.name}</SelectItem>
-                                                ))}
+                                                <SelectItem value="cash">Cash (Lunas)</SelectItem>
+                                                <SelectItem value="partial">Bayar Sebagian</SelectItem>
+                                                <SelectItem value="credit">Piutang (Tempo)</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                    ) : (
-                                        <Select value={selectedReseller} onValueChange={setSelectedReseller}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Pilih Reseller" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {resellers.map(r => (
-                                                    <SelectItem key={r.id} value={r.id.toString()}>{r.name} ({r.code})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    </div>
+                                    {paymentMethod === 'partial' && (
+                                        <div className="space-y-2">
+                                            <Label>Jumlah Bayar Awal</Label>
+                                            <Input
+                                                type="number"
+                                                value={paidAmount}
+                                                onChange={(e) => setPaidAmount(e.target.value)}
+                                                placeholder="Min. 500"
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="border rounded-md p-4 space-y-4">
-                                <Label>Item Penjualan</Label>
-                                {saleItems.map((item, index) => (
-                                    <div key={index} className="flex gap-2 items-end">
-                                        <div className="flex-1 space-y-1">
-                                            <Label className="text-xs">Produk Voucher</Label>
-                                            <Select value={item.productId} onValueChange={(v) => handleItemChange(index, 'productId', v)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Pilih Produk" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {products.map(p => (
-                                                        <SelectItem key={p.id} value={p.id.toString()} disabled={p.stock <= 0}>
-                                                            {p.name} (Stok: {p.stock} | {formatCurrency(p.price)})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="w-24 space-y-1">
-                                            <Label className="text-xs">Qty</Label>
-                                            <Input
-                                                type="number"
-                                                min="1"
-                                                value={item.qty}
-                                                onChange={(e) => handleItemChange(index, 'qty', parseInt(e.target.value) || 0)}
-                                            />
-                                        </div>
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} disabled={saleItems.length === 1}>
-                                            X
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button variant="outline" size="sm" onClick={handleAddItem} className="w-full">
-                                    + Tambah Item
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Batal</Button>
+                                <Button onClick={handleCreateSale} disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isPrepaid ? "Simpan (Reserved)" : "Proses Penjualan"}
                                 </Button>
-                            </div>
-
-                            <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                                <span className="font-semibold">Total Tagihan:</span>
-                                <span className="text-lg font-bold text-primary">{formatCurrency(totalAmount)}</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Metode Pembayaran</Label>
-                                    <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="cash">Cash (Lunas)</SelectItem>
-                                            <SelectItem value="partial">Bayar Sebagian</SelectItem>
-                                            <SelectItem value="credit">Piutang (Tempo)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                {paymentMethod === 'partial' && (
-                                    <div className="space-y-2">
-                                        <Label>Jumlah Bayar Awal</Label>
-                                        <Input
-                                            type="number"
-                                            value={paidAmount}
-                                            onChange={(e) => setPaidAmount(e.target.value)}
-                                            placeholder="Min. 500"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Batal</Button>
-                            <Button onClick={handleCreateSale} disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Proses Penjualan
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="rounded-md border">
@@ -329,20 +443,21 @@ export default function VoucherSales() {
                                 <TableHead>Dibayar</TableHead>
                                 <TableHead>Sisa</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Pengiriman</TableHead>
                                 <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
+                                    <TableCell colSpan={8} className="h-24 text-center">Loading...</TableCell>
                                 </TableRow>
-                            ) : sales.length === 0 ? (
+                            ) : filteredSales.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center">Belum ada data penjualan.</TableCell>
+                                    <TableCell colSpan={8} className="h-24 text-center">Belum ada data penjualan.</TableCell>
                                 </TableRow>
                             ) : (
-                                sales.map((sale) => (
+                                filteredSales.map((sale) => (
                                     <TableRow key={sale.public_id}>
                                         <TableCell>{format(new Date(sale.sold_at), "dd MMM yyyy HH:mm", { locale: id })}</TableCell>
                                         <TableCell>
@@ -358,22 +473,36 @@ export default function VoucherSales() {
                                         <TableCell className="text-red-500 font-medium">
                                             {sale.remaining_amount > 0 ? formatCurrency(sale.remaining_amount) : '-'}
                                         </TableCell>
+                                        <TableCell>{getStatusBadge(sale)}</TableCell>
                                         <TableCell>
-                                            <Badge variant={
-                                                sale.payment_status === 'paid' ? 'default' :
-                                                    sale.payment_status === 'partial' ? 'secondary' : 'destructive'
-                                            }>
-                                                {sale.payment_status === 'paid' ? 'Lunas' :
-                                                    sale.payment_status === 'partial' ? 'Sebagian' : 'Belum Bayar'}
-                                            </Badge>
+                                            {sale.is_prepaid ? (
+                                                sale.delivered_at ? (
+                                                    <span className="text-xs text-green-600">
+                                                        {format(new Date(sale.delivered_at), "dd MMM yyyy", { locale: id })}
+                                                    </span>
+                                                ) : (
+                                                    <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-300 text-xs">
+                                                        Belum Dikirim
+                                                    </Badge>
+                                                )
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">-</span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm" onClick={() => {
-                                                setSelectedSale(sale)
-                                                setIsDetailOpen(true)
-                                            }}>
-                                                <Eye className="h-4 w-4" /> Detail
-                                            </Button>
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="sm" onClick={() => {
+                                                    setSelectedSale(sale)
+                                                    setIsDetailOpen(true)
+                                                }}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                {sale.status === 'reserved' && (
+                                                    <Button variant="outline" size="sm" className="text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => openDeliveryDialog(sale)}>
+                                                        <Truck className="h-4 w-4 mr-1" /> Kirim
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -406,6 +535,30 @@ export default function VoucherSales() {
                                     <span className="text-muted-foreground block">Dibuat Oleh:</span>
                                     <span className="font-medium">{selectedSale.sold_by?.name}</span>
                                 </div>
+                                {selectedSale.is_prepaid && (
+                                    <>
+                                        <div>
+                                            <span className="text-muted-foreground block">Tipe:</span>
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">Prepaid / Reserved</Badge>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground block">Dikirim:</span>
+                                            {selectedSale.delivered_at ? (
+                                                <span className="font-medium text-green-600">
+                                                    {format(new Date(selectedSale.delivered_at), "dd MMM yyyy HH:mm", { locale: id })}
+                                                </span>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-300">Belum Dikirim</Badge>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                                {selectedSale.delivery_note && (
+                                    <div className="col-span-2">
+                                        <span className="text-muted-foreground block">Catatan Pengiriman:</span>
+                                        <span className="font-medium">{selectedSale.delivery_note}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
@@ -447,7 +600,19 @@ export default function VoucherSales() {
                                 </div>
                             </div>
 
-                            {selectedSale.remaining_amount > 0 && (
+                            {/* Mark as Delivered button for reserved sales */}
+                            {selectedSale.status === 'reserved' && (
+                                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-md">
+                                    <Button className="w-full" variant="outline" onClick={() => {
+                                        setIsDetailOpen(false)
+                                        openDeliveryDialog(selectedSale)
+                                    }}>
+                                        <Truck className="mr-2 h-4 w-4" /> Tandai Terkirim
+                                    </Button>
+                                </div>
+                            )}
+
+                            {selectedSale.remaining_amount > 0 && selectedSale.status !== 'reserved' && (
                                 <div className="bg-muted p-4 rounded-md space-y-3">
                                     <h4 className="font-medium flex items-center gap-2">
                                         <Banknote className="h-4 w-4" /> Tambah Pembayaran
@@ -467,6 +632,62 @@ export default function VoucherSales() {
                             )}
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Delivery Dialog */}
+            <Dialog open={isDeliveryOpen} onOpenChange={setIsDeliveryOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Tandai Pengiriman</DialogTitle>
+                        <DialogDescription>
+                            Sesuaikan jumlah yang dikirim. Sisa yang tidak dikirim akan dikembalikan ke stok.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        {deliveryItems.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-4 p-3 border rounded-md">
+                                <div className="flex-1">
+                                    <p className="font-medium text-sm">{item.product_name}</p>
+                                    <p className="text-xs text-muted-foreground">Reserved: {item.max_qty} pcs</p>
+                                </div>
+                                <div className="w-28 space-y-1">
+                                    <Label className="text-xs">Kirim</Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max={item.max_qty}
+                                        value={item.delivered_qty}
+                                        onChange={(e) => {
+                                            const val = Math.min(item.max_qty, Math.max(0, parseInt(e.target.value) || 0))
+                                            setDeliveryItems(prev => prev.map((di, i) =>
+                                                i === idx ? { ...di, delivered_qty: val } : di
+                                            ))
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+
+                        <div className="space-y-2">
+                            <Label>Catatan Pengiriman (Opsional)</Label>
+                            <Textarea
+                                value={deliveryNote}
+                                onChange={(e) => setDeliveryNote(e.target.value)}
+                                placeholder="Catatan terkait pengiriman..."
+                                rows={2}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeliveryOpen(false)}>Batal</Button>
+                        <Button onClick={handleMarkDelivered} disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Konfirmasi Pengiriman
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </Card>

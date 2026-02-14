@@ -356,6 +356,41 @@
               Sisa tagihan: <span class="font-bold text-indigo-600">Rp {{ formatCurrency(Math.max(0, saleStore.totalAmount - saleStore.paidAmount)) }}</span>
             </p>
           </div>
+
+          <!-- Delivery Option -->
+          <div class="mt-6 space-y-3">
+            <h3 class="font-bold text-slate-900 px-1">Opsi Pengiriman</h3>
+            <button 
+              @click="saleStore.isPrepaid = !saleStore.isPrepaid"
+              class="w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between"
+              :class="[
+                saleStore.isPrepaid 
+                  ? 'border-amber-600 bg-amber-50/50' 
+                  : 'border-slate-100 bg-white'
+              ]"
+            >
+              <div class="flex items-center gap-3">
+                <div 
+                  class="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                  :class="saleStore.isPrepaid ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-500'"
+                >
+                  <Package class="w-5 h-5" />
+                </div>
+                <div class="text-left">
+                  <p class="font-bold text-sm" :class="saleStore.isPrepaid ? 'text-amber-900' : 'text-slate-600'">
+                    Kirim Nanti (Prepaid)
+                  </p>
+                  <p class="text-xs text-slate-500">Pembayaran sekarang, kirim nanti</p>
+                </div>
+              </div>
+              <div 
+                class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
+                :class="saleStore.isPrepaid ? 'border-amber-600 bg-amber-600' : 'border-slate-200'"
+              >
+                <Check v-if="saleStore.isPrepaid" class="w-3.5 h-3.5 text-white" stroke-width="3" />
+              </div>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -406,7 +441,12 @@
            </div>
            
            <h2 class="text-3xl font-black text-slate-900 mb-2 tracking-tight">Sukses!</h2>
-           <p class="text-slate-500 mb-8 leading-relaxed">Transaksi penjualan berhasil disimpan dan stok voucher telah diperbarui.</p>
+           <p class="text-slate-500 mb-8 leading-relaxed">
+             {{ saleStore.isPrepaid 
+               ? 'Penjualan reserved berhasil disimpan. Voucher akan dikirim nanti.' 
+               : 'Transaksi penjualan berhasil disimpan dan stok voucher telah diperbarui.' 
+             }}
+           </p>
            
            <button @click="finish" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-900/20 hover:bg-slate-800 active:scale-95 transition-all">
              Kembali ke Beranda

@@ -17,9 +17,20 @@ class BusinessRepository
         return Business::where('tenant_id', $tenantId)->withCount('accounts')->find($id);
     }
 
-    public function findByIdPublicId(string $public_id, int $tenantId): ?Business
+    public function findByIdPublicId(string $public_id, ?int $tenantId): ?Business
     {
-        return Business::where('tenant_id', $tenantId)->withCount('accounts')->where('public_id', $public_id)->first();
+        $query = Business::withCount('accounts')->where('public_id', $public_id);
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return $query->first();
+    }
+
+    public function findByPublicId(string $public_id, ?int $tenantId): ?Business
+    {
+        return $this->findByIdPublicId($public_id, $tenantId);
     }
 
     public function create(array $data): Business

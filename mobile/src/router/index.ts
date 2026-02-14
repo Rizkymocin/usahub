@@ -71,6 +71,16 @@ const router = createRouter({
                     path: 'registration',
                     name: 'registration',
                     component: () => import('@/views/ResellerRegistrationView.vue')
+                },
+                {
+                    path: 'installation-status',
+                    name: 'installation-status',
+                    component: () => import('@/views/InstallationStatusView.vue')
+                },
+                {
+                    path: 'pending-deliveries',
+                    name: 'pending-deliveries',
+                    component: () => import('@/views/PendingDeliveriesView.vue')
                 }
             ]
         }

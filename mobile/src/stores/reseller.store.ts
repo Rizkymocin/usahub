@@ -56,8 +56,8 @@ export const useResellerStore = defineStore('reseller', () => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await axios.post(`/businesses/${businessPublicId}/resellers`, data);
-            resellers.value.push(response.data.data);
+            const response = await axios.post(`/businesses/${businessPublicId}/prospects`, data);
+            // Don't push to resellers list - prospects go through approval flow
             return response.data.data;
         } catch (err: any) {
             error.value = err.response?.data?.message || 'Gagal mendaftarkan reseller';

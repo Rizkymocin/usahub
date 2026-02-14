@@ -50,7 +50,7 @@ class AuthService
             // 3. Create Business
             $businessData = [
                 'name' => $data['business_name'],
-                'category' => 'isp',
+                'category' => $data['category'] ?? 'isp',
                 'is_active' => true,
             ];
             $business = $this->businessService->createBusiness($businessData, $tenant->id);
@@ -91,15 +91,26 @@ class AuthService
             ]);
         }
 
+        // Dispatch Login event for activity logging
+        event(new \Illuminate\Auth\Events\Login('web', $user, false));
+
         $token = $user->createToken('auth_token')->plainTextToken;
         $roles = $user->getRoleNames();
 
         // Find tenant if user is owner
         $tenant = Tenant::where('owner_user_id', $user->id)->first();
 
+        // Find primary business (via tenant if owner, or direct relation)
+        $business = $tenant ? $tenant->businesses()->first() : $user->businesses()->first();
+
+        if ($business) {
+            $user->business_public_id = $business->public_id;
+        }
+
         return [
             'user' => $user,
             'tenant' => $tenant,
+            'business' => $business,
             'roles' => $roles,
             'token' => $token,
         ];

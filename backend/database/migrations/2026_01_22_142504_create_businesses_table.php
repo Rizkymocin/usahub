@@ -17,7 +17,7 @@ return new class extends Migration {
                 ->onDelete('cascade');
 
             $table->string('name');
-            $table->enum('category', ['isp', 'atk', 'cafe']);
+            $table->enum('category', ['isp', 'atk', 'cafe', 'toko']);
             $table->text('address')->nullable();
             $table->boolean('is_active')->default(true);
 

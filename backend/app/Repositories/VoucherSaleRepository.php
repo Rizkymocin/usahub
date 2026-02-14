@@ -58,6 +58,16 @@ class VoucherSaleRepository
         return $sale->delete();
     }
 
+    public function findPendingDeliveries(int $businessId): Collection
+    {
+        return VoucherSale::where('business_id', $businessId)
+            ->where('is_prepaid', true)
+            ->whereNull('delivered_at')
+            ->with(['items.voucherProduct', 'outlet', 'reseller', 'soldBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
     public function addPayment(int $id, float $amount, $userId, $method = 'cash', $note = null): bool
     {
         $sale = VoucherSale::find($id);

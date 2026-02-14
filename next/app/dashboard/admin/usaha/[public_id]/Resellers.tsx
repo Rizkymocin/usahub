@@ -4,12 +4,12 @@ import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight, UserCheck } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,7 +18,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+
 import { toast } from "sonner"
 import {
     useReactTable,
@@ -41,19 +41,16 @@ export default function Resellers() {
     const {
         resellers,
         activeResellers,
-        inactiveResellers,
         isLoading: isResellersLoading,
         fetchResellers,
         fetchActiveResellers,
-        fetchInactiveResellers,
         addReseller,
         updateReseller,
-        deleteReseller,
-        activateReseller
+        deleteReseller
     } = useResellerStore()
     const { outlets, fetchOutlets } = useOutletStore()
 
-    const [activeTab, setActiveTab] = useState("active")
+
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false)
     const [resellerToSwitch, setResellerToSwitch] = useState<Reseller | null>(null)
@@ -72,20 +69,15 @@ export default function Resellers() {
     const [activeGlobalFilter, setActiveGlobalFilter] = useState("")
     const [activePagination, setActivePagination] = useState({ pageIndex: 0, pageSize: 5 })
 
-    // Table State for Inactive Tab
-    const [inactiveSorting, setInactiveSorting] = useState<SortingState>([])
-    const [inactiveColumnFilters, setInactiveColumnFilters] = useState<ColumnFiltersState>([])
-    const [inactiveGlobalFilter, setInactiveGlobalFilter] = useState("")
-    const [inactivePagination, setInactivePagination] = useState({ pageIndex: 0, pageSize: 5 })
+
 
     useEffect(() => {
         if (public_id) {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
             fetchActiveResellers(id)
-            fetchInactiveResellers(id)
             fetchOutlets(id)
         }
-    }, [public_id, fetchActiveResellers, fetchInactiveResellers, fetchOutlets])
+    }, [public_id, fetchActiveResellers, fetchOutlets])
 
     const handleSubmit = async () => {
         if (!selectedOutlet) {
@@ -114,7 +106,7 @@ export default function Resellers() {
             setAddress("")
             setSelectedOutlet("")
             // Refresh inactive resellers
-            fetchInactiveResellers(id)
+            // fetchInactiveResellers(id)
         } catch (error: any) {
             console.error(error)
         } finally {
@@ -122,20 +114,7 @@ export default function Resellers() {
         }
     }
 
-    const handleActivate = async (reseller: Reseller) => {
-        if (!public_id) return
-        const businessId = Array.isArray(public_id) ? public_id[0] : public_id
 
-        try {
-            await activateReseller(businessId, reseller.code)
-            toast.success("Reseller berhasil diaktifkan")
-            // Refresh both lists
-            fetchActiveResellers(businessId)
-            fetchInactiveResellers(businessId)
-        } catch (error: any) {
-            // Error handled
-        }
-    }
 
     const handleToggleStatus = async (reseller: Reseller) => {
         if (!public_id) return
@@ -148,7 +127,6 @@ export default function Resellers() {
             toast.success(reseller.is_active ? "Reseller dinonaktifkan" : "Reseller diaktifkan")
             // Refresh both lists
             fetchActiveResellers(businessId)
-            fetchInactiveResellers(businessId)
         } catch (error: any) {
             // Error handled
         }
@@ -166,8 +144,6 @@ export default function Resellers() {
             // Refresh appropriate list
             if (reseller.is_active) {
                 fetchActiveResellers(businessId)
-            } else {
-                fetchInactiveResellers(businessId)
             }
         } catch (error: any) {
             // Error handled
@@ -195,8 +171,6 @@ export default function Resellers() {
             // Refresh appropriate list
             if (resellerToSwitch.is_active) {
                 fetchActiveResellers(businessId)
-            } else {
-                fetchInactiveResellers(businessId)
             }
         } catch (error: any) {
             // Error handled by store/toast
@@ -278,81 +252,6 @@ export default function Resellers() {
         },
     ], [])
 
-    // Columns for Inactive Resellers (New Installations)
-    const inactiveColumns: ColumnDef<Reseller>[] = useMemo(() => [
-        {
-            accessorKey: "name",
-            header: ({ column }) => {
-                return (
-                    <Button
-                        variant="ghost"
-                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                        className="p-0 hover:bg-transparent"
-                    >
-                        Nama
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                )
-            },
-            cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
-        },
-        {
-            accessorKey: "code",
-            header: "Kode",
-            cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("code")}</div>,
-        },
-        {
-            accessorKey: "outlet.name",
-            header: "Outlet",
-            cell: ({ row }) => <div>{row.original.outlet?.name || "-"}</div>,
-        },
-        {
-            accessorKey: "phone",
-            header: "Telepon",
-            cell: ({ row }) => <div className="text-muted-foreground">{row.getValue("phone")}</div>,
-        },
-        {
-            accessorKey: "address",
-            header: "Alamat",
-            cell: ({ row }) => <div className="text-sm text-muted-foreground">{row.getValue("address") || "-"}</div>,
-        },
-        {
-            id: "status",
-            header: "Status",
-            cell: () => <Badge variant="secondary">Menunggu Instalasi</Badge>,
-        },
-        {
-            id: "actions",
-            enableHiding: false,
-            cell: ({ row }) => {
-                const item = row.original
-
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleActivate(item)} className="cursor-pointer">
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Aktifkan Reseller
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(item)} className="cursor-pointer text-destructive focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Hapus Reseller
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )
-            },
-        },
-    ], [])
-
     const activeTable = useReactTable({
         data: activeResellers,
         columns: activeColumns,
@@ -372,24 +271,7 @@ export default function Resellers() {
         onPaginationChange: setActivePagination,
     })
 
-    const inactiveTable = useReactTable({
-        data: inactiveResellers,
-        columns: inactiveColumns,
-        onSortingChange: setInactiveSorting,
-        onColumnFiltersChange: setInactiveColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        onGlobalFilterChange: setInactiveGlobalFilter,
-        state: {
-            sorting: inactiveSorting,
-            columnFilters: inactiveColumnFilters,
-            globalFilter: inactiveGlobalFilter,
-            pagination: inactivePagination,
-        },
-        onPaginationChange: setInactivePagination,
-    })
+
 
     const renderTable = (table: any, columns: ColumnDef<Reseller>[], globalFilter: string, setGlobalFilter: (value: string) => void) => (
         <>
@@ -620,28 +502,7 @@ export default function Resellers() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="active">
-                            Reseller Aktif
-                            {activeResellers.length > 0 && (
-                                <Badge variant="secondary" className="ml-2">{activeResellers.length}</Badge>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="inactive">
-                            Reseller Baru
-                            {inactiveResellers.length > 0 && (
-                                <Badge variant="destructive" className="ml-2">{inactiveResellers.length}</Badge>
-                            )}
-                        </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="active">
-                        {renderTable(activeTable, activeColumns, activeGlobalFilter, setActiveGlobalFilter)}
-                    </TabsContent>
-                    <TabsContent value="inactive">
-                        {renderTable(inactiveTable, inactiveColumns, inactiveGlobalFilter, setInactiveGlobalFilter)}
-                    </TabsContent>
-                </Tabs>
+                {renderTable(activeTable, activeColumns, activeGlobalFilter, setActiveGlobalFilter)}
             </CardContent>
         </Card>
     )

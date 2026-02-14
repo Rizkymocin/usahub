@@ -16,6 +16,13 @@ import { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Eye, EyeOff } from "lucide-react"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 type RegisterFormProps = {
     onSubmit: (data: any) => void,
@@ -30,6 +37,7 @@ export function RegisterForm({
 }: RegisterFormProps) {
     const searchParams = useSearchParams()
     const [plan, setPlan] = useState("free")
+    const [category, setCategory] = useState("isp")
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [password, setPassword] = useState("")
@@ -59,6 +67,7 @@ export function RegisterForm({
             password: formData.get("password") as string,
             password_confirmation: formData.get("password_confirmation") as string,
             business_name: formData.get("business_name") as string,
+            category: category,
             plan_id: planIdMap[plan]
         }
         onSubmit(data)
@@ -108,6 +117,20 @@ export function RegisterForm({
                                     placeholder="Nama Bisnis Anda"
                                     required
                                 />
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="category">Kategori Bisnis</FieldLabel>
+                                <Select value={category} onValueChange={setCategory} name="category">
+                                    <SelectTrigger id="category" className="h-10">
+                                        <SelectValue placeholder="Pilih Kategori" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="isp">Internet Service Provider (ISP)</SelectItem>
+                                        <SelectItem value="atk" disabled>Toko ATK (Coming Soon)</SelectItem>
+                                        <SelectItem value="cafe" disabled>Cafe & Resto (Coming Soon)</SelectItem>
+                                        <SelectItem value="toko" disabled>Toko Retail (Coming Soon)</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="password">Password</FieldLabel>

@@ -10,7 +10,7 @@ export interface IspMaintenanceIssue {
     reporter_id: number;
     title: string;
     description: string | null;
-    type: 'infra' | 'cpe' | 'other';
+    type: 'infra' | 'cpe' | 'installation' | 'other';
     priority: 'low' | 'medium' | 'high' | 'critical';
     status: 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
     assigned_technician_id: number | null;

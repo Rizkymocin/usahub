@@ -9,13 +9,15 @@ class JournalLine extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'journal_entry_id',
         'account_id',
+        'direction',
         'amount',
-        'position',
+        'finance_user_id',
+        'channel_type',
+        'channel_id',
+        'customer_id',
     ];
 
     public function journalEntry()
@@ -26,5 +28,15 @@ class JournalLine extends Model
     public function account()
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function financeUser()
+    {
+        return $this->belongsTo(User::class, 'finance_user_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(IspReseller::class, 'customer_id');
     }
 }

@@ -26,6 +26,9 @@ class VoucherSale extends Model
         'remaining_amount',
         'status',
         'sold_at',
+        'is_prepaid',
+        'delivered_at',
+        'delivery_note',
     ];
 
     protected $casts = [
@@ -33,6 +36,8 @@ class VoucherSale extends Model
         'paid_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
         'sold_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'is_prepaid' => 'boolean',
     ];
 
     // Relationships

@@ -15,6 +15,8 @@ export interface MaintenanceIssue {
         name: string;
         address: string;
         phone: string;
+        latitude?: string | number;
+        longitude?: string | number;
     };
     logs?: MaintenanceLog[];
 }

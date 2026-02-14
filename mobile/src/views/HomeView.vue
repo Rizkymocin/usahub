@@ -4,7 +4,7 @@
     <!-- Header Section -->
     <header class="relative pt-12 pb-24 px-6 z-10 text-primary-foreground">
       <!-- Background & Shapes -->
-      <div class="absolute inset-0 bg-gradient-to-r from-primary to-sky-400 rounded-b-[2.5rem] overflow-hidden -z-10">
+      <div class="absolute inset-0 bg-gradient-to-r from-primary to-sky-400 rounded-[2.5rem] overflow-hidden -z-10">
         <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl">
         </div>
       </div>
@@ -95,35 +95,7 @@
       </section>
 
       <!-- Pengumuman dari Admin -->
-      <section>
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="font-bold text-slate-900 text-lg">Pengumuman</h3>
-          <button class="text-xs text-primary font-medium">Lihat Semua</button>
-        </div>
-
-        <div
-          class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full -translate-y-1/2 translate-x-1/2">
-          </div>
-
-          <div class="relative z-10 flex gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-              <Bell class="w-5 h-5 text-white" />
-            </div>
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <h4 class="font-bold text-slate-900">Maintenance Server Terjadwal</h4>
-                <span class="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-semibold rounded-full">Penting</span>
-              </div>
-              <p class="text-sm text-slate-700 leading-relaxed mb-2">
-                Server akan menjalani maintenance pada <strong>Sabtu, 8 Februari 2026</strong> pukul 01:00 - 05:00 WIB.
-                Mohon maaf atas ketidaknyamanannya.
-              </p>
-              <p class="text-xs text-slate-500">Diposting 2 hari yang lalu oleh Admin</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AnnouncementView :business-id="user?.business_public_id" />
 
       <!-- Recent Activity -->
       <section>
@@ -133,17 +105,19 @@
         </div>
 
         <div class="space-y-3">
-          <!-- Skeleton Item (Dummy for now) -->
-          <div v-for="i in 3" :key="i"
-            class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-              <Clock class="w-5 h-5 text-slate-400" />
+          <div v-if="activityStore.recentLogs.length === 0"
+            class="text-center py-8 text-slate-500 text-sm bg-white rounded-xl border border-slate-100">
+            Belum ada aktivitas terbaru.
+          </div>
+          <div v-else v-for="log in activityStore.recentLogs" :key="log.id"
+            class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:border-primary/20 transition-colors">
+            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Activity class="w-5 h-5 text-blue-600" />
             </div>
-            <div class="flex-1">
-              <h5 class="font-medium text-slate-900 text-sm">Topup Saldo</h5>
-              <p class="text-xs text-slate-500 mt-0.5">24 Jan 2026</p>
+            <div class="flex-1 min-w-0">
+              <h5 class="font-medium text-slate-900 text-sm truncate capitalize">{{ log.description }}</h5>
+              <p class="text-xs text-slate-500 mt-0.5">{{ formatDate(log.created_at) }}</p>
             </div>
-            <span class="font-bold text-sm text-green-600">+Rp 50.000</span>
           </div>
         </div>
       </section>
@@ -155,16 +129,22 @@
 import { computed, watchEffect } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useStockStore } from '@/stores/stock.store';
+import { useActivityStore } from '@/stores/activity.store';
 import { useRouter } from 'vue-router';
+import AnnouncementView from '@/components/AnnouncementView.vue';
+import { formatDistanceToNow } from 'date-fns';
+import { id } from 'date-fns/locale';
 import {
-  Bell, Wallet, Ticket, Clock,
+  Bell, Wallet, Ticket,
   FileText, Wrench, UserPlus, ClipboardList,
   TicketIcon,
-  Activity
+  Activity,
+  Package
 } from 'lucide-vue-next';
 
 const auth = useAuthStore();
 const stockStore = useStockStore();
+const activityStore = useActivityStore();
 const router = useRouter();
 const user = computed(() => auth.user);
 
@@ -193,14 +173,27 @@ const totalAvailable = computed(() => {
 });
 
 watchEffect(async () => {
-  if (isFinance.value && user.value?.business_public_id) {
-    try {
-      await stockStore.fetchMyStock(user.value.business_public_id);
-    } catch (error) {
-      console.error('HomeView: Failed to fetch stock summary:', error);
+  if (user.value?.business_public_id) {
+    // Fetch recent activity for all users
+    activityStore.fetchRecentLogs(user.value.business_public_id);
+
+    if (isFinance.value) {
+      try {
+        await stockStore.fetchMyStock(user.value.business_public_id);
+      } catch (error) {
+        console.error('HomeView: Failed to fetch stock summary:', error);
+      }
     }
   }
 });
+
+const formatDate = (date: string) => {
+  try {
+    return formatDistanceToNow(new Date(date), { addSuffix: true, locale: id });
+  } catch (e) {
+    return date;
+  }
+};
 
 // Role-based menu configuration
 const roleMenus: Record<string, Array<{ label: string; icon: any; bgClass: string; textClass: string; route?: string }>> = {
@@ -208,6 +201,7 @@ const roleMenus: Record<string, Array<{ label: string; icon: any; bgClass: strin
     { label: 'Voucher', icon: Ticket, bgClass: 'bg-orange-50', textClass: 'text-orange-600', route: '/voucher' },
     { label: 'Penjualan', icon: FileText, bgClass: 'bg-green-50', textClass: 'text-green-600', route: '/sales' },
     { label: 'Penagihan', icon: ClipboardList, bgClass: 'bg-blue-50', textClass: 'text-blue-600', route: '/debt-collection' },
+    { label: 'Pending Pengiriman', icon: Package, bgClass: 'bg-amber-50', textClass: 'text-amber-600', route: '/pending-deliveries' },
   ],
   teknisi_maintenance: [
     { label: 'Pemeliharaan', icon: Wrench, bgClass: 'bg-purple-50', textClass: 'text-purple-600', route: '/maintenance' },

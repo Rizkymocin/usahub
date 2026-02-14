@@ -20,11 +20,15 @@
                 <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8"></div>
                 <div class="relative z-10">
                     <p class="text-green-100 font-medium mb-1">Total Pendaftar</p>
-                    <h2 class="text-3xl font-black tracking-tight">{{ resellers.length }}</h2>
-                    <p
-                        class="text-xs text-green-200 mt-2 bg-white/10 inline-flex px-3 py-1 rounded-full border border-white/10">
-                        {{ filteredResellers.length }} Menunggu Aktivasi
-                    </p>
+                    <h2 class="text-3xl font-black tracking-tight">{{ prospects.length }}</h2>
+                    <div class="flex gap-2 mt-3 flex-wrap">
+                        <span class="text-xs text-white bg-white/20 px-3 py-1 rounded-full border border-white/10">
+                            {{ waitingCount }} Menunggu
+                        </span>
+                        <span class="text-xs text-white bg-white/20 px-3 py-1 rounded-full border border-white/10">
+                            {{ approvedCount }} Disetujui
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -43,7 +47,7 @@
                 <Loader2 class="w-8 h-8 animate-spin text-green-600" />
             </div>
 
-            <div v-else-if="filteredResellers.length === 0" class="text-center py-12">
+            <div v-else-if="filteredProspects.length === 0" class="text-center py-12">
                 <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <UserPlus class="w-10 h-10 text-slate-300" />
                 </div>
@@ -52,39 +56,41 @@
             </div>
 
             <div v-else class="space-y-4">
-                <div v-for="reseller in filteredResellers" :key="reseller.id"
+                <div v-for="prospect in filteredProspects" :key="prospect.public_id"
                     class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-green-100 transition-all cursor-pointer active:scale-[0.98]">
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">
-                                {{ getInitial(reseller.name) }}
+                                {{ getInitial(prospect.name) }}
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-900 leading-tight">{{ reseller.name }}</h3>
-                                <p class="text-xs text-slate-500 font-mono mt-0.5">{{ reseller.code }}</p>
+                                <h3 class="font-bold text-slate-900 leading-tight">{{ prospect.name }}</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">{{ formatDate(prospect.created_at) }}</p>
                             </div>
                         </div>
-                        <span
-                            :class="`px-2 py-1 text-[10px] font-bold uppercase tracking-wide rounded-lg ${reseller.is_active ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`">
-                            {{ reseller.is_active ? 'Aktif' : 'Nonaktif' }}
+                        <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wide rounded-lg"
+                            :class="getStatusClass(prospect.status)">
+                            {{ getStatusLabel(prospect.status) }}
                         </span>
                     </div>
 
                     <div class="space-y-2 border-t border-slate-50 pt-3">
                         <div class="flex items-center gap-2 text-sm text-slate-600">
                             <Phone class="w-4 h-4 text-slate-400" />
-                            <span class="font-medium">{{ reseller.phone }}</span>
+                            <span class="font-medium">{{ prospect.phone }}</span>
                         </div>
-                        <div v-if="reseller.address" class="flex items-start gap-2 text-sm text-slate-600">
+                        <div v-if="prospect.address" class="flex items-start gap-2 text-sm text-slate-600">
                             <MapPin class="w-4 h-4 mt-0.5 shrink-0 text-slate-400" />
-                            <span class="leading-snug">{{ reseller.address }}</span>
+                            <span class="leading-snug">{{ prospect.address }}</span>
                         </div>
-                        <!-- Display Location if Available -->
-                        <div v-if="reseller.latitude && reseller.longitude"
+                        <div v-if="prospect.latitude && prospect.longitude"
                             class="flex items-center gap-1.5 text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1.5 rounded-lg w-fit mt-1">
                             <MapPin class="w-3.5 h-3.5" />
                             <span>Lokasi Terpin</span>
+                        </div>
+                        <div v-if="prospect.admin_note" class="text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg mt-1">
+                            <span class="font-bold">Catatan:</span> {{ prospect.admin_note }}
                         </div>
                     </div>
                 </div>
@@ -136,16 +142,7 @@
                                             placeholder="08...">
                                     </div>
 
-                                    <div>
-                                        <label
-                                            class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-1.5 block">Kode
-                                            Pelanggan (Opsional)</label>
-                                        <input type="text" v-model="form.code"
-                                            class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400"
-                                            placeholder="Kosongkan untuk auto-generate">
-                                        <p class="text-[10px] uppercase font-bold text-slate-400 mt-1.5 ml-1">Biarkan
-                                            kosong agar sistem membuat kode otomatis.</p>
-                                    </div>
+
 
                                     <div>
                                         <label
@@ -253,6 +250,38 @@
                 </div>
             </Dialog>
         </TransitionRoot>
+
+        <!-- Success Overlay -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showSuccess" class="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/90 backdrop-blur-md">
+            <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+               <!-- Confetti-like decoration -->
+               <div class="absolute -top-10 -right-10 w-32 h-32 bg-green-500/10 rounded-full blur-2xl"></div>
+               <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+
+               <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                 <div class="absolute inset-0 bg-green-400/20 rounded-full animate-ping"></div>
+                 <Check class="w-10 h-10 text-green-600 relative z-10" stroke-width="4" />
+               </div>
+               
+               <h2 class="text-3xl font-black text-slate-900 mb-2 tracking-tight">Sukses!</h2>
+               <p class="text-slate-500 mb-8 leading-relaxed">
+                 Pendaftaran pelanggan baru berhasil disimpan. Data akan segera diproses oleh admin.
+               </p>
+               
+               <button @click="finish" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-900/20 hover:bg-slate-800 active:scale-95 transition-all">
+                 Tutup
+               </button>
+            </div>
+          </div>
+        </Transition>
     </div>
 </template>
 
@@ -261,16 +290,21 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { ArrowLeft, Search, Plus, UserPlus, Phone, MapPin, Loader2, Check, ChevronsUpDown } from 'lucide-vue-next';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild, Combobox, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/vue';
 import { useResellerStore } from '@/stores/reseller.store';
+import { useRegistrationStore } from '@/stores/registration.store';
 import { useOutletStore } from '@/stores/outlet.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from 'vue-sonner';
+import { format } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
 const resellerStore = useResellerStore();
+const registrationStore = useRegistrationStore();
 const outletStore = useOutletStore();
 const authStore = useAuthStore();
 
 const searchQuery = ref('');
 const isOpen = ref(false);
+const showSuccess = ref(false);
 const submitting = ref(false);
 const gettingLocation = ref(false);
 const outletQuery = ref('');
@@ -280,31 +314,32 @@ const selectedOutlet = ref<any>(null);
 const form = ref<{
     name: string;
     phone: string;
-    code: string;
     address: string;
     latitude: number | null;
     longitude: number | null;
-    outlet_id: number | null;
+    outlet_public_id: string | null;
 }>({
     name: '',
     phone: '',
-    code: '',
     address: '',
     latitude: null,
     longitude: null,
-    outlet_id: null
+    outlet_public_id: null
 });
 
-const loading = computed(() => resellerStore.loading);
-const resellers = computed(() => resellerStore.resellers);
+const loading = computed(() => registrationStore.loading);
+const prospects = computed(() => registrationStore.registrations);
 const outlets = computed(() => outletStore.outlets);
 
-const filteredResellers = computed(() => {
-    if (!searchQuery.value) return resellers.value;
+const waitingCount = computed(() => prospects.value.filter(p => p.status === 'waiting').length);
+const approvedCount = computed(() => prospects.value.filter(p => p.status === 'approved').length);
+
+const filteredProspects = computed(() => {
+    if (!searchQuery.value) return prospects.value;
     const lower = searchQuery.value.toLowerCase();
-    return resellers.value.filter(r =>
-        r.name.toLowerCase().includes(lower) ||
-        r.code.toLowerCase().includes(lower)
+    return prospects.value.filter(p =>
+        p.name.toLowerCase().includes(lower) ||
+        p.phone.toLowerCase().includes(lower)
     );
 });
 
@@ -319,16 +354,44 @@ const filteredOutletsList = computed(() => {
         )
 });
 
-// Sync selectedOutlet with form.outlet_id
+// Sync selectedOutlet with form.outlet_public_id
 watch(selectedOutlet, (newVal) => {
-    form.value.outlet_id = newVal?.id ?? null;
+    form.value.outlet_public_id = newVal?.public_id ?? null;
 });
 
 const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
+const formatDate = (date: string) => {
+    return format(new Date(date), 'dd MMM yyyy, HH:mm', { locale: idLocale });
+};
+
+const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+        waiting: 'Menunggu',
+        approved: 'Disetujui',
+        rejected: 'Ditolak',
+        installed: 'Terpasang',
+        installation_rejected: 'Instalasi Ditolak',
+        activated: 'Aktif',
+    };
+    return labels[status] || status;
+};
+
+const getStatusClass = (status: string) => {
+    const classes: Record<string, string> = {
+        waiting: 'bg-yellow-50 text-yellow-600',
+        approved: 'bg-blue-50 text-blue-600',
+        rejected: 'bg-red-50 text-red-600',
+        installed: 'bg-green-50 text-green-600',
+        installation_rejected: 'bg-orange-50 text-orange-600',
+        activated: 'bg-emerald-50 text-emerald-600',
+    };
+    return classes[status] || 'bg-slate-50 text-slate-600';
+};
+
 onMounted(async () => {
     if (authStore.user?.business_public_id) {
-        resellerStore.fetchInactiveResellers(authStore.user.business_public_id);
+        registrationStore.fetchRegistrations();
         await outletStore.fetchOutlets(authStore.user.business_public_id);
     }
 });
@@ -341,11 +404,10 @@ const openAddModal = () => {
     form.value = {
         name: '',
         phone: '',
-        code: '',
         address: '',
         latitude: null,
         longitude: null,
-        outlet_id: _defaultOutlet?.id ?? null
+        outlet_public_id: _defaultOutlet?.public_id ?? null
     };
     isOpen.value = true;
 };
@@ -379,7 +441,7 @@ const getCurrentLocation = () => {
 
 const submitForm = async () => {
     if (!authStore.user?.business_public_id) return;
-    if (!form.value.outlet_id) {
+    if (!form.value.outlet_public_id) {
         toast.error('Pilih outlet terlebih dahulu');
         return;
     }
@@ -387,12 +449,19 @@ const submitForm = async () => {
     submitting.value = true;
     try {
         await resellerStore.createReseller(authStore.user.business_public_id, form.value);
-        toast.success('Pelanggan berhasil didaftarkan');
+        // toast.success('Pendaftaran berhasil dikirim! Menunggu persetujuan admin.');
         closeModal();
+        showSuccess.value = true;
+        // Refresh the prospect list
+        await registrationStore.fetchRegistrations();
     } catch (error: any) {
         toast.error(error.response?.data?.message || 'Gagal mendaftarkan pelanggan');
     } finally {
         submitting.value = false;
     }
+};
+
+const finish = () => {
+    showSuccess.value = false;
 };
 </script>

@@ -136,6 +136,20 @@ export default function Stock() {
             cell: ({ row }) => <div className="font-mono font-medium">Rp {Number(row.getValue("total_amount")).toLocaleString('id-ID')}</div>,
         },
         {
+            id: "products",
+            header: "Item Voucher",
+            cell: ({ row }) => (
+                <div className="flex flex-col gap-1">
+                    {row.original.items.map((item) => (
+                        <div key={item.id} className="text-xs">
+                            <span className="font-medium">{item.voucher_product?.name}</span>
+                            <span className="text-muted-foreground ml-1">x{item.qty}</span>
+                        </div>
+                    ))}
+                </div>
+            ),
+        },
+        {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { useBusiness } from "@/stores/business.selectors"
+import { useBusinessStore } from "@/stores/business.store"
 import { useVoucherStockStore } from "@/stores/voucher-stock.store"
 import { useVoucherSaleStore } from "@/stores/voucher-sale.store"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -26,76 +27,55 @@ import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
 import { RefreshButton } from "@/components/ui/refresh-button"
 
-export default function KasirDashboard() {
+export default function IspKasirDashboard() {
     const { public_id } = useParams()
     const business = useBusiness()
     const { summary: fetchedStockSummary, fetchSummary, isLoading: isStockLoading } = useVoucherStockStore()
     const { sales: fetchedSales, fetchSales, isLoading: isSalesLoading, createSale } = useVoucherSaleStore()
 
     const stockSummary = useMemo(() => {
-        if (!isStockLoading && fetchedStockSummary.length === 0) {
-            // Return dummy data if empty
-            return [
-                {
-                    voucher_product_id: 1,
-                    total_quantity: 50,
-                    total_value: 500000,
-                    voucher_product: { id: 1, name: "Voucher 1 Jam", selling_price: 5000, duration_value: 1, duration_unit: 'hour', is_active: true }
-                },
-                {
-                    voucher_product_id: 2,
-                    total_quantity: 20,
-                    total_value: 400000,
-                    voucher_product: { id: 2, name: "Voucher 3 Jam", selling_price: 15000, duration_value: 3, duration_unit: 'hour', is_active: true }
-                },
-                {
-                    voucher_product_id: 3,
-                    total_quantity: 15,
-                    total_value: 750000,
-                    voucher_product: { id: 3, name: "Voucher 24 Jam", selling_price: 50000, duration_value: 24, duration_unit: 'hour', is_active: true }
-                }
-            ] as any[]
-        }
         return fetchedStockSummary
-    }, [fetchedStockSummary, isStockLoading])
+    }, [fetchedStockSummary])
 
     const sales = useMemo(() => {
-        if (!isSalesLoading && fetchedSales.length === 0) {
-            // Return dummy data if empty
-            return [
-                {
-                    id: 1,
-                    public_id: "SALE-0001",
-                    total_amount: 25000,
-                    sold_at: new Date().toISOString(),
-                    status: "success",
-                    payment_method: "cash"
-                },
-                {
-                    id: 2,
-                    public_id: "SALE-0002",
-                    total_amount: 50000,
-                    sold_at: new Date(Date.now() - 3600000).toISOString(),
-                    status: "success",
-                    payment_method: "cash"
-                }
-            ] as any[]
-        }
         return fetchedSales
-    }, [fetchedSales, isSalesLoading])
+    }, [fetchedSales])
 
     const [searchTerm, setSearchTerm] = useState("")
     const [cart, setCart] = useState<Record<number, number>>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const businessId = Array.isArray(public_id) ? public_id[0] : public_id
+    const businessId = (Array.isArray(public_id) ? public_id[0] : public_id) || business?.public_id
 
     useEffect(() => {
-        if (businessId) {
-            fetchSummary(businessId as string)
-            fetchSales(businessId as string)
+        const initDashboard = async () => {
+            let activeBusinessId = businessId
+
+            if (!activeBusinessId) {
+                try {
+                    // If no business ID (e.g. root dashboard), fetch user's businesses
+                    const response = await import("@/services/business.service").then(m => m.businessService.listBusinesses())
+                    if (response.success && response.data.length > 0) {
+                        // Use the first business found
+                        const firstBusiness = response.data[0]
+                        activeBusinessId = firstBusiness.public_id
+
+                        // Also fetch/set this business in the store
+                        useBusinessStore.getState().fetchBusiness(activeBusinessId)
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch user businesses", error)
+                }
+            }
+
+            if (activeBusinessId) {
+                fetchSummary(activeBusinessId as string)
+                fetchSales(activeBusinessId as string)
+            }
         }
-    }, [businessId, fetchSummary, fetchSales])
+
+        initDashboard()
+    }, [businessId, fetchSummary, fetchSales]) // Keep dependencies minimal? Or add others?
 
     const stats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0]
@@ -103,10 +83,21 @@ export default function KasirDashboard() {
         const totalAmount = todaySales.reduce((acc, curr) => acc + Number(curr.total_amount), 0)
         const totalVouchers = stockSummary.reduce((acc, curr) => acc + curr.total_quantity, 0)
 
+        // Calculate total sold items from sales history to estimate sell-through
+        // For 'Target Penjualan', we can compare today's sales count vs (today's sales + current stock)
+        // This gives a rough "daily sell-through rate"
+        const todaySoldItemsCount = todaySales.reduce((acc, sale) => {
+            return acc + (sale.items?.reduce((iAcc: number, item: any) => iAcc + item.quantity, 0) || 0)
+        }, 0)
+
+        const totalPotential = todaySoldItemsCount + totalVouchers
+        const salesPercentage = totalPotential > 0 ? Math.round((todaySoldItemsCount / totalPotential) * 100) : 0
+
         return {
             todaySalesCount: todaySales.length,
             todayTotalAmount: totalAmount,
-            totalStock: totalVouchers
+            totalStock: totalVouchers,
+            salesPercentage
         }
     }, [sales, stockSummary])
 
@@ -124,14 +115,45 @@ export default function KasirDashboard() {
                 const { [productId]: _, ...rest } = prev
                 return rest
             }
+            // Check stock limit for increment
+            if (delta > 0) {
+                const stockItem = stockSummary.find(s => s.voucher_product_id === productId)
+                if (stockItem && next > stockItem.total_quantity) {
+                    toast.error(`Stok tidak mencukupi. Maksimal: ${stockItem.total_quantity}`)
+                    return prev
+                }
+            }
             return { ...prev, [productId]: next }
         })
+    }
+
+    const handleManualQtyChange = (productId: number, value: string) => {
+        const qty = parseInt(value)
+        if (isNaN(qty) || qty <= 0) {
+            // Remove from cart
+            setCart(prev => {
+                const { [productId]: _, ...rest } = prev
+                return rest
+            })
+            return
+        }
+
+        const stockItem = stockSummary.find(s => s.voucher_product_id === productId)
+        if (!stockItem) return
+
+        if (qty > stockItem.total_quantity) {
+            setCart(prev => ({ ...prev, [productId]: stockItem.total_quantity }))
+            toast.error(`Stok tidak mencukupi. Maksimal: ${stockItem.total_quantity}`)
+            return
+        }
+
+        setCart(prev => ({ ...prev, [productId]: qty }))
     }
 
     const totalCartItems = Object.values(cart).reduce((a, b) => a + b, 0)
     const totalCartPrice = Object.entries(cart).reduce((acc, [id, qty]) => {
         const item = stockSummary.find(s => s.voucher_product_id === Number(id))
-        const price = item?.voucher_product?.selling_price || item?.voucher_product?.price || 0
+        const price = item?.voucher_product?.selling_price || 0
         return acc + price * qty
     }, 0)
 
@@ -145,7 +167,7 @@ export default function KasirDashboard() {
                 return {
                     voucher_product_id: Number(id),
                     quantity: qty,
-                    unit_price: stockItem?.voucher_product?.selling_price || stockItem?.voucher_product?.price || 0
+                    unit_price: stockItem?.voucher_product?.selling_price || 0
                 }
             })
 
@@ -217,13 +239,19 @@ export default function KasirDashboard() {
 
                 <Card className="bg-white shadow-sm border-l-4 border-l-green-500">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Target Penjualan</CardTitle>
+                        <CardTitle className="text-sm font-medium">Target Penjualan Hari Ini</CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">75%</div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-2xl font-bold">{stats.salesPercentage}%</span>
+                            <span className="text-xs text-muted-foreground mr-1">Target: 75%</span>
+                        </div>
                         <div className="w-full bg-zinc-100 h-2 rounded-full mt-2">
-                            <div className="bg-green-500 h-full rounded-full" style={{ width: '75%' }}></div>
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${stats.salesPercentage >= 75 ? 'bg-green-500' : 'bg-amber-500'}`}
+                                style={{ width: `${Math.min(stats.salesPercentage, 100)}%` }}
+                            ></div>
                         </div>
                     </CardContent>
                 </Card>
@@ -270,7 +298,7 @@ export default function KasirDashboard() {
                                                     Stok: {item.total_quantity}
                                                 </Badge>
                                                 <span className="text-xs font-medium text-zinc-600">
-                                                    Rp {(item.voucher_product?.selling_price || item.voucher_product?.price || 0).toLocaleString('id-ID')}
+                                                    Rp {(item.voucher_product?.selling_price || 0).toLocaleString('id-ID')}
                                                 </span>
                                             </div>
                                         </div>
@@ -285,9 +313,12 @@ export default function KasirDashboard() {
                                                     >
                                                         <Minus className="h-3 w-3" />
                                                     </Button>
-                                                    <span className="w-8 text-center text-xs font-bold">
-                                                        {cart[item.voucher_product_id]}
-                                                    </span>
+                                                    <Input
+                                                        type="number"
+                                                        className="h-7 w-14 text-center px-1 mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        value={cart[item.voucher_product_id]}
+                                                        onChange={(e) => handleManualQtyChange(item.voucher_product_id, e.target.value)}
+                                                    />
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -337,7 +368,7 @@ export default function KasirDashboard() {
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                         {Object.entries(cart).map(([id, qty]) => {
                                             const item = stockSummary.find(s => s.voucher_product_id === Number(id))
-                                            const itemPrice = item?.voucher_product?.selling_price || item?.voucher_product?.price || 0
+                                            const itemPrice = item?.voucher_product?.selling_price || 0
                                             return (
                                                 <div key={id} className="flex justify-between items-start text-sm border-b border-zinc-100 pb-2">
                                                     <div>

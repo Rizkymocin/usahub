@@ -159,9 +159,9 @@ export default function MaintenanceTab() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Laporan Gangguan (Maintenance) & Instalasi Baru</h2>
+                    <h2 className="text-xl font-semibold tracking-tight">Laporan Gangguan</h2>
                     <p className="text-sm text-muted-foreground">
-                        Daftar laporan gangguan dari Reseller atau permintaan instalasi baru.
+                        Daftar laporan gangguan dari Reseller.
                     </p>
                 </div>
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -277,21 +277,21 @@ export default function MaintenanceTab() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {isLoading && issues.length === 0 ? (
+                                {isLoading && issues.filter(i => i.type !== 'installation').length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                                             Memuat data gangguan...
                                         </td>
                                     </tr>
-                                ) : issues.length === 0 ? (
+                                ) : issues.filter(i => i.type !== 'installation').length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                             Belum ada laporan gangguan.
                                         </td>
                                     </tr>
                                 ) : (
-                                    issues.map((issue) => (
+                                    issues.filter(i => i.type !== 'installation').map((issue) => (
                                         <tr key={issue.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 {getStatusBadge(issue.status)}

@@ -94,6 +94,7 @@ class VoucherSaleController extends Controller
             'items.*.voucher_product_id' => 'required|exists:isp_voucher_products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'nullable|numeric|min:0',
+            'is_prepaid' => 'nullable|boolean',
         ]);
 
         try {
@@ -133,6 +134,64 @@ class VoucherSaleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Payment added successfully',
+                'data' => $sale
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    public function pendingDeliveries(Request $request, string $business_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+        }
+
+        $tenantId = $business->tenant_id;
+        $sales = $this->service->getPendingDeliveries($business_public_id, $tenantId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pending deliveries retrieved successfully',
+            'data' => $sales
+        ]);
+    }
+
+    public function markDelivered(Request $request, string $business_public_id, string $sale_public_id): JsonResponse
+    {
+        $user = $request->user();
+        $business = $user->businesses()->where('businesses.public_id', $business_public_id)->first();
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found or access denied'], 404);
+        }
+
+        $tenantId = $business->tenant_id;
+
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.voucher_product_id' => 'required|integer',
+            'items.*.delivered_qty' => 'required|integer|min:0',
+            'delivery_note' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $sale = $this->service->markAsDelivered(
+                $sale_public_id,
+                $business_public_id,
+                $tenantId,
+                $user->id,
+                $validated['items'],
+                $validated['delivery_note'] ?? null
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sale marked as delivered successfully',
                 'data' => $sale
             ]);
         } catch (\Exception $e) {

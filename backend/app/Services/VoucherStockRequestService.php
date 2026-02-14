@@ -111,6 +111,17 @@ class VoucherStockRequestService
             // Create items
             $this->itemRepo->createMany($stockRequest->id, $resolvedItems);
 
+            // Log Activity
+            activity()
+                ->causedBy($user)
+                ->performedOn($stockRequest)
+                ->withProperties([
+                    'total_amount' => $totalAmount,
+                    'items_count' => count($resolvedItems),
+                ])
+                ->event('created')
+                ->log("Finance requested voucher stock");
+
             return $this->requestRepo->findById($stockRequest->id);
         });
     }

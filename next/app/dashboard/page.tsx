@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import SuperAdminDashboard from "../components/SuperAdminDashboard"
 import OwnerDashboard from "../components/OwnerDashboard"
 import BusinessAdminDashboard from "../components/BusinessAdminDashboard"
-import KasirDashboard from "../components/KasirDashboard"
+import IspKasirDashboard from "../components/IspKasirDashboard"
 
 export default function DashboardPage() {
     const [role, setRole] = useState<string | null>(null)
@@ -66,7 +66,7 @@ export default function DashboardPage() {
     }
 
     if (role === 'kasir') {
-        return <KasirDashboard />
+        return <IspKasirDashboard />
     }
 
     return (

@@ -91,8 +91,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/admin/usaha",
           },
           {
-            title: "Pengguna",
-            url: "/dashboard/admin/pengguna",
+            title: "Transaksi",
+            url: "/dashboard/admin/transaksi",
+          },
+          {
+            title: "Aktivitas",
+            url: "/dashboard/admin/activity",
+          },
+          {
+            title: "Akuntansi",
+            url: "/dashboard/admin/accounting",
           },
         ],
       },
@@ -125,8 +133,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         roles: ["business_admin"],
         items: [
           {
-            title: "Laporan Presensi",
-            url: "/dashboard/reports/presensi",
+            title: "Laporan Usaha",
+            url: "/dashboard/reports/usaha",
           },
           {
             title: "Rekapitulasi",

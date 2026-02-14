@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\IspMaintenanceIssue;
+use App\Models\IspProspect;
 use App\Models\IspReseller;
 use App\Repositories\IspMaintenanceRepository;
+use App\Services\IspProspectService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
@@ -35,11 +37,16 @@ class IspMaintenanceService
     public function createIssue(string $businessPublicId, int $reporterId, array $data): IspMaintenanceIssue
     {
         $business = Business::where('public_id', $businessPublicId)->firstOrFail();
-        $reseller = IspReseller::findOrFail($data['reseller_id']); // Assuming ID is passed, need validation if it's public_id
+
+        $resellerId = null;
+        if (!empty($data['reseller_id'])) {
+            $reseller = IspReseller::findOrFail($data['reseller_id']);
+            $resellerId = $reseller->id;
+        }
 
         return $this->repository->createIssue([
             'business_id' => $business->id,
-            'reseller_id' => $reseller->id,
+            'reseller_id' => $resellerId,
             'reporter_id' => $reporterId,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
@@ -73,9 +80,9 @@ class IspMaintenanceService
         $this->repository->updateIssue($issue, $data);
         $issue->refresh();
 
-        // Auto-activate reseller if installation is resolved
-        if (($data['status'] ?? null) === 'resolved' && $issue->type === 'installation') {
-            $issue->reseller()->update(['is_active' => true]);
+        // Sync prospect status if installation issue is resolved or failed
+        if ($issue->type === 'installation') {
+            $this->syncProspectStatus($issue, $data['status'] ?? null, $data['technician_note'] ?? null);
         }
 
         return $issue;
@@ -123,19 +130,58 @@ class IspMaintenanceService
             $updateData['resolved_at'] = now();
         } elseif ($data['result'] === 'pending') {
             $updateData['status'] = 'in_progress';
+        } elseif ($data['result'] === 'failed') {
+            $updateData['status'] = 'closed'; // Or 'cancelled'
         }
 
         // Perform update if there are changes
         if (!empty($updateData)) {
             $this->repository->updateIssue($issue, $updateData);
 
-            // Auto-activate reseller if installation is resolved via log success
-            if (($updateData['status'] ?? null) === 'resolved' && $issue->type === 'installation') {
-                $issue->reseller()->update(['is_active' => true]);
+            // Sync prospect status if installation issue is resolved or failed via log
+            if ($issue->type === 'installation') {
+                $this->syncProspectStatus($issue, $updateData['status'] ?? null, $data['notes'] ?? null);
             }
         }
 
+        // Log Activity (Audit)
+        $activityDesc = $issue->type === 'installation' ? 'Technician updated installation' : 'Technician updated maintenance';
+        if (isset($updateData['status']) && $updateData['status'] === 'resolved') {
+            $activityDesc = $issue->type === 'installation' ? 'Technician completed installation' : 'Technician resolved maintenance';
+        }
+
+        activity()
+            ->causedBy(\App\Models\User::find($technicianId))
+            ->performedOn($issue)
+            ->withProperties([
+                'action_taken' => $data['action_taken'],
+                'result' => $data['result'],
+                'status' => $updateData['status'] ?? $issue->status,
+                'issue_type' => $issue->type
+            ])
+            ->event('updated')
+            ->log($activityDesc);
+
         return $log;
+    }
+
+    /**
+     * Sync the prospect status based on installation issue outcome.
+     */
+    protected function syncProspectStatus(IspMaintenanceIssue $issue, ?string $status, ?string $note = null): void
+    {
+        $prospect = IspProspect::where('maintenance_issue_id', $issue->id)->first();
+        if (!$prospect) {
+            return;
+        }
+
+        $prospectService = app(IspProspectService::class);
+
+        if ($status === 'resolved') {
+            $prospectService->markInstalled($prospect);
+        } elseif ($status === 'closed' || $status === 'cancelled') {
+            $prospectService->markInstallationRejected($prospect, $note ?? 'Instalasi ditolak oleh teknisi');
+        }
     }
 
     public function getInventoryItems(string $businessPublicId)

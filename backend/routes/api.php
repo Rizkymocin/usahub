@@ -40,6 +40,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'store']);
     Route::delete('/businesses/{public_id}/accounts/{id}', [\App\Http\Controllers\AccountController::class, 'destroy']);
 
+    // Journal Entry Routes
+    Route::get('/businesses/{public_id}/journal-entries', [\App\Http\Controllers\JournalEntryController::class, 'index']);
+
+    // Accounting Period Routes
+    Route::get('/businesses/{public_id}/accounting-periods', [\App\Http\Controllers\AccountingPeriodController::class, 'index']);
+    Route::get('/businesses/{public_id}/accounting-periods/{period_id}/summary', [\App\Http\Controllers\AccountingPeriodController::class, 'summary']);
+    Route::post('/businesses/{public_id}/accounting-periods/{period_id}/close', [\App\Http\Controllers\AccountingPeriodController::class, 'close']);
+    Route::post('/businesses/{public_id}/accounting-periods/{period_id}/reopen', [\App\Http\Controllers\AccountingPeriodController::class, 'reopen']);
+
+
     // User Routes
     Route::post('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'storeUser']);
     Route::get('/businesses/{public_id}/users', [\App\Http\Controllers\BusinessController::class, 'users']);
@@ -49,6 +59,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/businesses/{public_id}/outlets', [\App\Http\Controllers\BusinessController::class, 'storeOutlet']);
     Route::put('/businesses/{public_id}/outlets/{outlet_public_id}', [\App\Http\Controllers\BusinessController::class, 'updateOutlet']);
     Route::delete('/businesses/{public_id}/outlets/{outlet_public_id}', [\App\Http\Controllers\BusinessController::class, 'destroyOutlet']);
+
+    // Announcements
+    Route::get('/businesses/{public_id}/announcements', [\App\Http\Controllers\IspAnouncementController::class, 'index']);
+    Route::post('/businesses/{public_id}/announcements', [\App\Http\Controllers\IspAnouncementController::class, 'store']);
+    Route::put('/businesses/{public_id}/announcements/{id}', [\App\Http\Controllers\IspAnouncementController::class, 'update']);
+    Route::delete('/businesses/{public_id}/announcements/{id}', [\App\Http\Controllers\IspAnouncementController::class, 'destroy']);
 
     // Reseller Routes
     Route::get('/businesses/{public_id}/resellers', [\App\Http\Controllers\BusinessController::class, 'resellers']);
@@ -75,7 +91,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Voucher Sales Routes (Finance sells to Outlet/Reseller)
     Route::get('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'index']);
     Route::post('/businesses/{public_id}/voucher-sales', [\App\Http\Controllers\VoucherSaleController::class, 'store']);
+    Route::get('/businesses/{public_id}/voucher-sales/pending-delivery', [\App\Http\Controllers\VoucherSaleController::class, 'pendingDeliveries']);
     Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}', [\App\Http\Controllers\VoucherSaleController::class, 'show']);
+    Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/mark-delivered', [\App\Http\Controllers\VoucherSaleController::class, 'markDelivered']);
     Route::get('/businesses/{public_id}/voucher-sales/{sale_public_id}/payments', [\App\Http\Controllers\VoucherSalePaymentController::class, 'index']);
     Route::post('/businesses/{public_id}/voucher-sales/{sale_public_id}/payments', [\App\Http\Controllers\VoucherSalePaymentController::class, 'store']);
 
@@ -110,4 +128,39 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Maintenance Logs (Technician updates)
     Route::post('/businesses/{public_id}/maintenance-issues/{issue_public_id}/logs', [\App\Http\Controllers\IspMaintenanceLogController::class, 'store']);
+
+    // Task Expenses (Technician personal expenses)
+    Route::get('/businesses/{public_id}/maintenance-issues/{issue_public_id}/expenses', [\App\Http\Controllers\IspTaskExpenseController::class, 'getIssueExpenses']);
+    Route::post('/businesses/{public_id}/maintenance-issues/{issue_public_id}/expenses', [\App\Http\Controllers\IspTaskExpenseController::class, 'store']);
+    Route::get('/businesses/{public_id}/expenses', [\App\Http\Controllers\IspTaskExpenseController::class, 'getBusinessExpenses']);
+    Route::delete('/businesses/{public_id}/expenses/{expense_public_id}', [\App\Http\Controllers\IspTaskExpenseController::class, 'destroy']);
+
+
+    // Prospect (Calon Pasang Baru) Routes
+    Route::get('/businesses/{public_id}/prospects', [\App\Http\Controllers\IspProspectController::class, 'index']);
+    Route::post('/businesses/{public_id}/prospects', [\App\Http\Controllers\IspProspectController::class, 'store']);
+    Route::get('/businesses/{public_id}/prospects/{prospect_public_id}', [\App\Http\Controllers\IspProspectController::class, 'show']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/approve', [\App\Http\Controllers\IspProspectController::class, 'approve']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/reject', [\App\Http\Controllers\IspProspectController::class, 'reject']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/re-approve', [\App\Http\Controllers\IspProspectController::class, 'reApprove']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/activate', [\App\Http\Controllers\IspProspectController::class, 'activate']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/confirm-readiness', [\App\Http\Controllers\IspProspectController::class, 'confirmReadiness']);
+    Route::post('/businesses/{public_id}/prospects/{prospect_public_id}/assign-technician', [\App\Http\Controllers\IspProspectController::class, 'assignTechnician']);
+
+    // My Prospects (for mobile sales)
+    Route::get('/isp/my-prospects', [\App\Http\Controllers\IspProspectController::class, 'myProspects']);
+
+    // n8n Webhook Data Endpoints
+    Route::get('/webhooks/n8n/prospect-approved/{prospect_public_id}', [\App\Http\Controllers\N8nWebhookController::class, 'prospectApproved']);
+    Route::get('/webhooks/n8n/technician-assigned/{prospect_public_id}', [\App\Http\Controllers\N8nWebhookController::class, 'technicianAssigned']);
+    // Reseller Registration Routes
+    Route::get('/reseller-registrations', [\App\Http\Controllers\IspResellerRegistrationController::class, 'index']);
+    Route::post('/reseller-registrations/{registration_id}/approve', [\App\Http\Controllers\IspResellerRegistrationController::class, 'approve']);
+
+    // ISP Purchase Routes
+    Route::get('/businesses/{public_id}/purchases', [\App\Http\Controllers\IspPurchaseController::class, 'index']);
+    Route::post('/businesses/{public_id}/purchases', [\App\Http\Controllers\IspPurchaseController::class, 'store']);
+
+    // Activity Log Routes
+    Route::get('/businesses/{public_id}/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
 });

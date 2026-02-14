@@ -88,7 +88,7 @@ export default function UserPage() {
             const payload = {
                 name: newName,
                 email: newEmail,
-                role: newRole
+                role: [newRole]
             }
             const { data } = await axios.post(`businesses/${public_id}/users`, payload)
 
