@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Business;
+use App\Models\IspConfiguration;
 use App\Models\IspInstallationReadiness;
 use App\Models\IspProspect;
 use App\Models\IspReseller;
@@ -106,7 +107,7 @@ class IspProspectService
     /**
      * Admin approves a prospect and creates an installation ticket.
      */
-    public function approve(string $publicId, int $adminId, string $note = null, float $commissionAmount = 0): IspProspect
+    public function approve(string $publicId, int $adminId, string $note = null, float $commissionAmount = 0, ?int $uplinkResellerId = null): IspProspect
     {
         $prospect = $this->repository->findByPublicId($publicId);
 
@@ -118,14 +119,18 @@ class IspProspectService
             throw new Exception("Only prospects with 'waiting' status can be approved.");
         }
 
-        return DB::transaction(function () use ($prospect, $adminId, $note, $commissionAmount) {
+        return DB::transaction(function () use ($prospect, $adminId, $note, $commissionAmount, $uplinkResellerId) {
             // Update prospect status
             $prospect = $this->repository->update($prospect, [
                 'status' => 'approved',
                 'admin_note' => $note,
                 'approved_by' => $adminId,
                 'approved_at' => now(),
+                'uplink_reseller_id' => $uplinkResellerId,
             ]);
+
+            // Assign IP Address if configured
+            $this->assignIpAddress($prospect);
 
             // Create installation ticket
             $issue = $this->createInstallationTicket($prospect);
@@ -285,6 +290,9 @@ class IspProspectService
                 'address' => $prospect->address,
                 'latitude' => $prospect->latitude,
                 'longitude' => $prospect->longitude,
+                'ip_address' => $prospect->ip_address,
+                'cidr' => $prospect->cidr,
+                'uplink_reseller_id' => $prospect->uplink_reseller_id,
                 'is_active' => true,
                 'created_at' => now(),
             ]);
@@ -313,7 +321,13 @@ class IspProspectService
         }
         if ($prospect->latitude && $prospect->longitude) {
             $description .= "Koordinat: {$prospect->latitude}, {$prospect->longitude}\n";
-            $description .= "Google Maps: https://www.google.com/maps/search/?api=1&query={$prospect->latitude},{$prospect->longitude}";
+            $description .= "Google Maps: https://www.google.com/maps/search/?api=1&query={$prospect->latitude},{$prospect->longitude}\n";
+        }
+        if ($prospect->ip_address) {
+            $description .= "IP Address: {$prospect->ip_address}/{$prospect->cidr}\n";
+        }
+        if ($prospect->uplinkReseller) {
+            $description .= "Uplink Reseller: {$prospect->uplinkReseller->name} ({$prospect->uplinkReseller->code})\n";
         }
 
         // We need to create a temporary reseller-like reference for the maintenance issue
@@ -411,5 +425,106 @@ class IspProspectService
 
             return $prospect;
         });
+    }
+
+    /**
+     * Calculate and assign the next available IP address to the prospect.
+     */
+    private function assignIpAddress(IspProspect $prospect): void
+    {
+        $businessId = $prospect->business_id;
+
+        // Get Configuration
+        $startIpConfig = IspConfiguration::where('business_id', $businessId)
+            ->where('key', 'reseller_ip_start')
+            ->first();
+
+        $cidrConfig = IspConfiguration::where('business_id', $businessId)
+            ->where('key', 'reseller_ip_cidr')
+            ->first();
+
+        if (!$startIpConfig || !$startIpConfig->value) {
+            // No configuration, skip IP assignment
+            return;
+        }
+
+        $startIp = $startIpConfig->value;
+        $cidr = $cidrConfig ? (int)$cidrConfig->value : 24; // Default /24
+
+        // Find last assigned IP
+        $lastReseller = IspReseller::where('business_id', $businessId)
+            ->whereNotNull('ip_address')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $lastProspect = IspProspect::where('business_id', $businessId)
+            ->where('id', '!=', $prospect->id) // Exclude current if already exists (though it shouldn't have IP yet)
+            ->whereNotNull('ip_address')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $lastIp = null;
+        if ($lastReseller && $lastProspect) {
+            // Determine which one is more recent or higher
+            // Assuming sequential allocation, comparing IDs might be enough if we just want "the last one allocated"
+            // But let's assume we want the highest IP value to be safe against deletions (?)
+            // Actually, simpler is: compare their query timestamps or just pick the max IP.
+            // Using ip2long for comparison:
+            $resellerIpLong = ip2long($lastReseller->ip_address);
+            $prospectIpLong = ip2long($lastProspect->ip_address);
+            $lastIp = ($resellerIpLong > $prospectIpLong) ? $lastReseller->ip_address : $lastProspect->ip_address;
+        } elseif ($lastReseller) {
+            $lastIp = $lastReseller->ip_address;
+        } elseif ($lastProspect) {
+            $lastIp = $lastProspect->ip_address;
+        }
+
+        if (!$lastIp) {
+            // First allocation
+            // Network is the start IP block.
+            // Assuming start_ip is the Network Address (e.g., 10.10.0.0)
+            // First host is +1
+            $nextIpLong = ip2long($startIp) + 1;
+        } else {
+            // Calculate next network
+            // 1. Get network address of last IP
+            // Mask for CIDR: ~((1 << (32 - cidr)) - 1)
+            // But simpler: pow(2, 32-cidr) is the block size.
+            $blockSize = pow(2, 32 - $cidr);
+
+            // We need to find the Network Address of the last IP.
+            // Assuming the Assigned IP is always Network + 1.
+            $lastIpLong = ip2long($lastIp);
+
+            // Reconstruct network address: (IP - 1) if we strictly follow "First Host" rule
+            // Or better: $lastNetworkLong = ($lastIpLong & ((-1 << (32 - $cidr)))); 
+            // Note: Bitwise operations in PHP on 32-bit systems can be tricky.
+            // Let's use the block size math.
+            // user says: "every reseller allcation IP address is the first host of the network"
+
+            // So if last IP was 10.10.0.1 (Network 10.10.0.0)
+            // Next Network should be 10.10.0.0 + BlockSize.
+            // Current Network Start = $lastIpLong - 1 (Assuming strictly complying to +1 rule)
+            // But to be safer, let's align it to the block size.
+            // Actually, $lastIpLong might be 10.10.0.1.
+            // Network Start = 10.10.0.0
+
+            // Let's rely on previous IP + (BlockSize - 1) + 1 ? No.
+            // Next Network Start = Previous Network Start + BlockSize.
+
+            // Let's try to get Previous Network Start from Previous IP.
+            // Since we allocate the FIRST host, the previous network start is simply PreviousIP - 1.
+            $lastNetworkStart = $lastIpLong - 1;
+
+            $nextNetworkStart = $lastNetworkStart + $blockSize;
+            $nextIpLong = $nextNetworkStart + 1;
+        }
+
+        $nextIp = long2ip($nextIpLong);
+
+        $this->repository->update($prospect, [
+            'ip_address' => $nextIp,
+            'cidr' => $cidr
+        ]);
     }
 }

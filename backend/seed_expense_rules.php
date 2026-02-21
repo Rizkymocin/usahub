@@ -44,14 +44,56 @@ foreach ($tenants as $tenant) {
             continue;
         }
 
+        // Check for Account 2040 (Hutang Operasional), create if missing
+        $acc2040 = DB::table('accounts')
+            ->where('business_id', $business->id)
+            ->where('code', '2040')
+            ->first();
+
+        if (!$acc2040) {
+            echo "    Creating account 2040 (Hutang Operasional)...\n";
+            // Find parent 2000
+            $parent2000 = DB::table('accounts')->where('business_id', $business->id)->where('code', '2000')->first();
+
+            $acc2040Id = DB::table('accounts')->insertGetId([
+                'public_id' => \Illuminate\Support\Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'business_id' => $business->id,
+                'name' => 'Hutang Operasional',
+                'type' => 'liability',
+                'code' => '2040',
+                'is_active' => true,
+                'parent_id' => $parent2000->id ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $accounts['2040'] = $acc2040Id;
+        } else {
+            $accounts['2040'] = $acc2040->id;
+        }
+
         // Check if rules already exist
         $existingRules = DB::table('accounting_rules')
             ->where('business_id', $business->id)
             ->where('event_code', 'EVT_EXPENSE_LOGGED')
-            ->count();
+            ->first();
 
-        if ($existingRules > 0) {
-            echo "    ✓ EVT_EXPENSE_LOGGED rules already exist ({$existingRules} rules)\n";
+        if ($existingRules) {
+            // Update existing rule to point to 2040 if it uses 2010
+            if ($existingRules->account_id == $accounts['2010'] && $existingRules->direction == 'CREDIT') {
+                DB::table('accounting_rules')
+                    ->where('id', $existingRules->id)
+                    ->update(['account_id' => $accounts['2040'], 'updated_at' => now()]);
+                echo "    ✓ Updated existing rule to use Account 2040\n";
+            } else {
+                // Check the second rule (CREDIT one)
+                DB::table('accounting_rules')
+                    ->where('business_id', $business->id)
+                    ->where('event_code', 'EVT_EXPENSE_LOGGED')
+                    ->where('direction', 'CREDIT')
+                    ->update(['account_id' => $accounts['2040'], 'updated_at' => now()]);
+                echo "    ✓ Updated existing CREDIT rule to use Account 2040\n";
+            }
             continue;
         }
 
@@ -73,7 +115,7 @@ foreach ($tenants as $tenant) {
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            // Credit Hutang Reimburse
+            // Credit Hutang Operasional
             [
                 'tenant_id' => $tenant->id,
                 'business_id' => $business->id,
@@ -81,7 +123,7 @@ foreach ($tenants as $tenant) {
                 'rule_name' => 'Expense logged - reimbursement liability (credit)',
                 'priority' => 2,
                 'condition_json' => json_encode([]),
-                'account_id' => $accounts['2010'], // Hutang Reimburse
+                'account_id' => $accounts['2040'], // Hutang Operasional
                 'direction' => 'CREDIT',
                 'amount_source' => 'expense_amount',
                 'collector_required' => false,
@@ -92,7 +134,7 @@ foreach ($tenants as $tenant) {
         ];
 
         DB::table('accounting_rules')->insert($rules);
-        echo "    ✓ Created " . count($rules) . " EVT_EXPENSE_LOGGED rules\n";
+        echo "    ✓ Created " . count($rules) . " EVT_EXPENSE_LOGGED rules using Account 2040\n";
     }
 }
 

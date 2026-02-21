@@ -46,7 +46,7 @@ interface ProspectState {
     error: string | null;
 
     fetchProspects: (businessId: string, status?: string) => Promise<void>;
-    approveProspect: (businessId: string, publicId: string, note?: string, commissionAmount?: number) => Promise<void>;
+    approveProspect: (businessId: string, publicId: string, note?: string, commissionAmount?: number, uplinkResellerId?: number) => Promise<void>;
     rejectProspect: (businessId: string, publicId: string, note: string) => Promise<void>;
     reApproveProspect: (businessId: string, publicId: string, note?: string) => Promise<void>;
     activateProspect: (businessId: string, publicId: string) => Promise<void>;
@@ -77,10 +77,10 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
         }
     },
 
-    approveProspect: async (businessId: string, publicId: string, note?: string, commissionAmount?: number) => {
+    approveProspect: async (businessId: string, publicId: string, note?: string, commissionAmount?: number, uplinkResellerId?: number) => {
         set({ isLoading: true, error: null });
         try {
-            await axios.post(`businesses/${businessId}/prospects/${publicId}/approve`, { note, commission_amount: commissionAmount });
+            await axios.post(`businesses/${businessId}/prospects/${publicId}/approve`, { note, commission_amount: commissionAmount, uplink_reseller_id: uplinkResellerId });
             // Refetch
             await get().fetchProspects(businessId);
         } catch (error: any) {

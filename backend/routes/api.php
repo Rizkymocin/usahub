@@ -12,6 +12,10 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OutletPinLoginController;
 use App\Http\Controllers\Auth\MobileAuthController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ManualJournalController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 
 Route::post('/register-tenant', [AuthController::class, 'registerTenant']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -35,6 +39,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('businesses', \App\Http\Controllers\BusinessController::class);
     Route::get('/business-by-admin', [\App\Http\Controllers\BusinessController::class, 'getBusinessesByAdmin']);
 
+    // Dashboard Routes
+    Route::get('/dashboard/owner', [DashboardController::class, 'getOwnerDashboard']);
+    Route::get('/businesses/{public_id}/dashboard', [DashboardController::class, 'getBusinessDashboard']);
+
+    // Reporting Routes
+    Route::prefix('tenant/reports')->group(function () {
+        Route::get('/profit-loss', [ReportController::class, 'getProfitAndLoss']);
+        Route::get('/business-performance', [ReportController::class, 'getBusinessPerformance']);
+        Route::get('/cash-flow', [ReportController::class, 'getCashFlow']);
+        Route::get('/ar-ap', [ReportController::class, 'getArAp']);
+        Route::get('/general-ledger', [ReportController::class, 'getGeneralLedger']);
+    });
+
     // Account Routes
     Route::get('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'index']);
     Route::post('/businesses/{public_id}/accounts', [\App\Http\Controllers\AccountController::class, 'store']);
@@ -42,6 +59,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Journal Entry Routes
     Route::get('/businesses/{public_id}/journal-entries', [\App\Http\Controllers\JournalEntryController::class, 'index']);
+
+    // Payments (Piutang & Hutang)
+    Route::get('/businesses/{public_id}/payments/pending', [PaymentController::class, 'pending']);
+    Route::post('/businesses/{public_id}/payments', [PaymentController::class, 'store']);
+
+    // Manual Journal Entries
+    Route::post('/businesses/{public_id}/manual-journals', [ManualJournalController::class, 'store']);
 
     // Accounting Period Routes
     Route::get('/businesses/{public_id}/accounting-periods', [\App\Http\Controllers\AccountingPeriodController::class, 'index']);
@@ -163,4 +187,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Activity Log Routes
     Route::get('/businesses/{public_id}/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
+
+    // ISP Configurations
+    Route::get('/businesses/{public_id}/configurations', [\App\Http\Controllers\IspConfigurationController::class, 'index']);
+    Route::post('/businesses/{public_id}/configurations', [\App\Http\Controllers\IspConfigurationController::class, 'store']);
 });

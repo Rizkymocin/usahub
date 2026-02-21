@@ -42,7 +42,27 @@ class AccountingRulesSeeder extends Seeder
      */
     private function getAccountIds(int $businessId): array
     {
-        $accountCodes = ['1010', '1030', '1050', '2010', '2020', '2030', '4010', '5010', '5020'];
+        $accountCodes = [
+            '1010',
+            '1030',
+            '1040',
+            '1050',
+            '2010',
+            '2020',
+            '2030',
+            '2040',
+            '3010',
+            '3020',
+            '3030',
+            '4010',
+            '5010',
+            '5020',
+            '5070',
+            '5080',
+            '5090',
+            '5100',
+            '5110',
+        ];
         $accounts = [];
 
         foreach ($accountCodes as $code) {
@@ -255,8 +275,40 @@ class AccountingRulesSeeder extends Seeder
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+                'updated_at' => now(),
             ],
 
+            // EVT_PURCHASE_PAID - Expense (2 rules)
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_PURCHASE_PAID',
+                'rule_name' => 'Purchase expense paid (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode(['purchase_category' => 'expense']),
+                'account_id' => $accounts['5010'], // Beban Maintenance
+                'direction' => 'DEBIT',
+                'amount_source' => 'total_amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_PURCHASE_PAID',
+                'rule_name' => 'Purchase expense paid (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode(['purchase_category' => 'expense']),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'total_amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
             // EVT_PURCHASE_PAID - Asset (2 rules)
             [
                 'tenant_id' => $tenantId,
@@ -411,6 +463,294 @@ class AccountingRulesSeeder extends Seeder
                 'account_id' => $accounts['2020'], // Hutang Komisi
                 'direction' => 'CREDIT',
                 'amount_source' => 'commission_amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_EXPENSE_LOGGED (2 rules) - Personal Expense/Reimburse
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_EXPENSE_LOGGED',
+                'rule_name' => 'Expense logged - maintenance cost (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5010'], // Biaya Pemeliharaan
+                'direction' => 'DEBIT',
+                'amount_source' => 'expense_amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_EXPENSE_LOGGED',
+                'rule_name' => 'Expense logged - reimbursement liability (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['2040'], // Prefer Hutang Operasional, fallback to Utang Voucher
+                'direction' => 'CREDIT',
+                'amount_source' => 'expense_amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_PRIVE - Owner withdraws funds
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_PRIVE',
+                'rule_name' => 'Prive - retained earnings (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['3020'], // Laba Ditahan
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_PRIVE',
+                'rule_name' => 'Prive - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_EQUITY_INVESTED - Owner invests capital
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_EQUITY_INVESTED',
+                'rule_name' => 'Owner equity invested - cash (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_EQUITY_INVESTED',
+                'rule_name' => 'Owner equity invested - capital (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['3010'], // Modal Pemilik
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_INVESTOR_EQUITY - Third-party investor equity
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_INVESTOR_EQUITY',
+                'rule_name' => 'Investor equity - cash (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_INVESTOR_EQUITY',
+                'rule_name' => 'Investor equity - shares (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['3030'], // Saham Pihak Ketiga
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_TAX_PAID_PPH - PPh Tax Payment
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_TAX_PAID_PPH',
+                'rule_name' => 'PPh tax paid - expense (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5070'], // Pajak Perusahaan (PPh)
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_TAX_PAID_PPH',
+                'rule_name' => 'PPh tax paid - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_TAX_PAID_ISP - ISP Tax Payment
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_TAX_PAID_ISP',
+                'rule_name' => 'ISP tax paid - expense (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5080'], // Pajak ISP
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_TAX_PAID_ISP',
+                'rule_name' => 'ISP tax paid - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_SIMPANAN_POKOK - Simpanan Pokok Koperasi
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_SIMPANAN_POKOK',
+                'rule_name' => 'Simpanan pokok - expense (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5090'], // Simpanan Pokok Koperasi
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_SIMPANAN_POKOK',
+                'rule_name' => 'Simpanan pokok - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_SIMPANAN_WAJIB - Simpanan Wajib Koperasi
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_SIMPANAN_WAJIB',
+                'rule_name' => 'Simpanan wajib - expense (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5100'], // Simpanan Wajib Koperasi
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_SIMPANAN_WAJIB',
+                'rule_name' => 'Simpanan wajib - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // EVT_IURAN_KOPERASI - Iuran Koperasi
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_IURAN_KOPERASI',
+                'rule_name' => 'Iuran koperasi - expense (debit)',
+                'priority' => 1,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['5110'], // Iuran Koperasi
+                'direction' => 'DEBIT',
+                'amount_source' => 'amount',
+                'collector_required' => false,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'tenant_id' => $tenantId,
+                'business_id' => $businessId,
+                'event_code' => 'EVT_IURAN_KOPERASI',
+                'rule_name' => 'Iuran koperasi - cash (credit)',
+                'priority' => 2,
+                'condition_json' => json_encode([]),
+                'account_id' => $accounts['1010'], // Kas
+                'direction' => 'CREDIT',
+                'amount_source' => 'amount',
                 'collector_required' => false,
                 'is_active' => true,
                 'created_at' => now(),

@@ -25,4 +25,9 @@ class Tenant extends Model
     {
         return $this->belongsTo(Plan::class, 'plans_id');
     }
+
+    public function businesses()
+    {
+        return $this->hasMany(Business::class);
+    }
 }

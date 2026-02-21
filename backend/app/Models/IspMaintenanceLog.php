@@ -53,4 +53,9 @@ class IspMaintenanceLog extends Model
         return $this->belongsToMany(IspMaintenanceItem::class, 'isp_maintenance_log_items', 'log_id', 'item_id')
             ->withPivot('quantity', 'notes');
     }
+
+    public function participants()
+    {
+        return $this->belongsToMany(User::class, 'isp_maintenance_log_participants', 'log_id', 'user_id');
+    }
 }

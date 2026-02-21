@@ -1,5 +1,8 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { dashboardService } from "@/services/dashboard.service"
+import { businessService } from "@/services/business.service"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -103,13 +106,102 @@ const weeklyRevenue = [
 ]
 
 export default function BusinessAdminDashboard() {
+    const [businesses, setBusinesses] = useState<any[]>([]);
+    const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchBusinessesAndData = async () => {
+            try {
+                // 1. Fetch businesses for this admin
+                const res = await businessService.getBusinessesByAdmin();
+                if (res.success && res.data.length > 0) {
+                    setBusinesses(res.data);
+
+                    // For now, auto-select the first one
+                    const initialBusiness = res.data[0];
+                    setSelectedBusiness(initialBusiness);
+
+                    // 2. Fetch dashboard data for that business
+                    const dashRes = await dashboardService.getBusinessDashboard(initialBusiness.public_id);
+                    if (dashRes.success) {
+                        setDashboardData(dashRes.data);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load business admin dashboard:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBusinessesAndData();
+    }, []);
+
+    if (isLoading) {
+        return <div className="p-6">Loading business data...</div>;
+    }
+
+    if (!selectedBusiness) {
+        return <div className="p-6">No assigned businesses found.</div>;
+    }
+
+    const { stats: fetchedStats, recent_transactions } = dashboardData || {};
+
+    // Override dummy stats with fetched ones
+    const activeBusinessStats = [
+        {
+            title: "Today's Revenue",
+            value: fetchedStats?.today_revenue || "Rp 0",
+            change: "Today",
+            trend: "up",
+            icon: DollarSign,
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+            description: ""
+        },
+        {
+            title: "Active Customers",
+            value: fetchedStats?.active_customers || "0",
+            change: "Active",
+            trend: "up",
+            icon: Users,
+            color: "text-blue-600",
+            bgColor: "bg-blue-50",
+            description: "Total"
+        },
+        {
+            title: "Transactions",
+            value: fetchedStats?.transactions_count || "0",
+            change: "Recent",
+            trend: "up",
+            icon: ShoppingCart,
+            color: "text-purple-600",
+            bgColor: "bg-purple-50",
+            description: ""
+        },
+        {
+            title: "Staff On Duty",
+            value: "-",
+            change: "-",
+            trend: "up",
+            icon: UserCheck,
+            color: "text-orange-600",
+            bgColor: "bg-orange-50",
+            description: ""
+        }
+    ];
+
+    const displayTransactions = recent_transactions || recentTransactions;
+
     return (
         <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
             {/* Header with Controls */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Business Dashboard</h1>
-                    <p className="text-gray-500 mt-1">Kopi Kenangan - Bandung Branch</p>
+                    <p className="text-gray-500 mt-1">{selectedBusiness.name}</p>
                 </div>
                 <div className="flex items-center space-x-3">
                     <Button variant="outline" size="sm">
@@ -129,7 +221,7 @@ export default function BusinessAdminDashboard() {
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {businessStats.map((stat, index) => {
+                {activeBusinessStats.map((stat, index) => {
                     const Icon = stat.icon
                     return (
                         <Card key={index} className="p-6 hover:shadow-lg transition-all duration-200 bg-white">
@@ -170,7 +262,7 @@ export default function BusinessAdminDashboard() {
                         {staffPerformance.map((staff, index) => (
                             <div key={index} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
                                         {staff.name.split(' ').map(n => n[0]).join('')}
                                     </div>
                                     <div>
@@ -211,7 +303,7 @@ export default function BusinessAdminDashboard() {
                                 <div className="flex items-center space-x-3">
                                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                                         <div
-                                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                                            className="bg-linear-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
                                             style={{ width: `${(slot.customers / 124) * 100}%` }}
                                         />
                                     </div>
@@ -256,8 +348,8 @@ export default function BusinessAdminDashboard() {
                                         {/* Actual revenue */}
                                         <div
                                             className={`absolute bottom-0 w-full rounded-t-lg transition-all duration-500 ${data.revenue >= data.target
-                                                ? 'bg-gradient-to-t from-green-500 to-green-400'
-                                                : 'bg-gradient-to-t from-blue-500 to-blue-400'
+                                                ? 'bg-linear-to-t from-green-500 to-green-400'
+                                                : 'bg-linear-to-t from-blue-500 to-blue-400'
                                                 } hover:opacity-80 cursor-pointer group`}
                                             style={{ height: `${(data.revenue / 4) * 200}px` }}
                                         >
@@ -277,7 +369,7 @@ export default function BusinessAdminDashboard() {
                 <Card className="p-6 bg-white">
                     <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Transactions</h2>
                     <div className="space-y-3">
-                        {recentTransactions.map((transaction, index) => (
+                        {displayTransactions.map((transaction: any, index: number) => (
                             <div key={index} className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-gray-900 text-sm">{transaction.id}</p>

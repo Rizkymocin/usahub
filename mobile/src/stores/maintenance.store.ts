@@ -18,6 +18,7 @@ export interface MaintenanceIssue {
         latitude?: string | number;
         longitude?: string | number;
     };
+    assigned_technician_id?: number;
     logs?: MaintenanceLog[];
 }
 
@@ -38,6 +39,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
     const currentIssue = ref<MaintenanceIssue | null>(null);
     const items = ref<any[]>([]); // Maintenance Inventory Items
     const installations = ref<MaintenanceIssue[]>([]);
+    const technicians = ref<any[]>([]); // List of available technicians
     const loading = ref(false);
     const error = ref<string | null>(null);
 
@@ -95,6 +97,23 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
         }
     }
 
+    async function fetchTechnicians(businessId: string) {
+        try {
+            // Fetch users with roles relevant to technical work
+            // Using existing users endpoint
+            const response = await axios.get(`/businesses/${businessId}/users`, {
+                params: {
+                    role: 'teknisi_maintenance,teknisi_pasang_baru'
+                }
+            });
+            // Optionally filter on client side if needed, or trust backend to return all business users
+            // For now, returning all business users is fine for "Rekan Kerja"
+            technicians.value = response.data.data; // Fixed: Accesing .data property from API response wrapper
+        } catch (err: any) {
+            console.error('Failed to fetch technicians', err);
+        }
+    }
+
     async function fetchInstallations(businessId: string) {
         loading.value = true;
         error.value = null;
@@ -110,7 +129,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
         }
     }
 
-    async function submitLog(businessId: string, issuePublicId: string, data: { action_taken: string, result: string, notes?: string, items?: any[], photos?: File[] }) {
+    async function submitLog(businessId: string, issuePublicId: string, data: { action_taken: string, result: string, notes?: string, items?: any[], photos?: File[], participant_ids?: number[] }) {
         loading.value = true;
         try {
             const formData = new FormData();
@@ -122,6 +141,13 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
                 data.items.forEach((item, index) => {
                     formData.append(`items[${index}][item_id]`, String(item.item_id));
                     formData.append(`items[${index}][quantity]`, String(item.quantity));
+                    if (item.notes) formData.append(`items[${index}][notes]`, item.notes);
+                });
+            }
+
+            if (data.participant_ids && data.participant_ids.length > 0) {
+                data.participant_ids.forEach((id, index) => {
+                    formData.append(`participant_ids[${index}]`, String(id));
                 });
             }
 
@@ -152,11 +178,13 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
         currentIssue,
         items,
         installations,
+        technicians,
         loading,
         error,
         fetchAssignments,
         fetchIssueDetail,
         fetchItems,
+        fetchTechnicians,
         fetchInstallations,
         submitLog
     };

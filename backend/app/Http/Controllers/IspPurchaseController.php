@@ -56,6 +56,7 @@ class IspPurchaseController extends Controller
         $validated = $request->validate([
             'purchase_date' => 'required|date',
             'type' => 'required|string|in:maintenance,general',
+            'payment_method' => 'nullable|string|in:cash,credit,transfer', // Default to cash if null
             'invoice_number' => 'nullable|string|max:255',
             'supplier_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string',

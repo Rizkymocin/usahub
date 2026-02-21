@@ -17,12 +17,15 @@ class IspReseller extends Model
         'tenant_id',
         'business_id',
         'outlet_id',
+        'uplink_reseller_id',
         'code',
         'name',
         'phone',
         'address',
         'latitude',
         'longitude',
+        'ip_address',
+        'cidr',
         'is_active',
         'created_at',
     ];
@@ -49,7 +52,12 @@ class IspReseller extends Model
 
     public function outlet()
     {
-        return $this->belongsTo(IspOutlet::class);
+        return $this->belongsTo(IspOutlet::class, 'outlet_id');
+    }
+
+    public function uplinkReseller()
+    {
+        return $this->belongsTo(IspReseller::class, 'uplink_reseller_id');
     }
 
     public function getActivitylogOptions(): \Spatie\Activitylog\LogOptions

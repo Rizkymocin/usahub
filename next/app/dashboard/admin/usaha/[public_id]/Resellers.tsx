@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
+import axios from "@/lib/axios"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight } from "lucide-react"
+import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight, Settings } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -56,11 +57,20 @@ export default function Resellers() {
     const [resellerToSwitch, setResellerToSwitch] = useState<Reseller | null>(null)
     const [switchOutletId, setSwitchOutletId] = useState("")
 
+    // Configuration State
+    const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
+    const [ipStart, setIpStart] = useState("")
+    const [ipCidr, setIpCidr] = useState("24")
+
     // Form State
     const [name, setName] = useState("")
     const [selectedOutlet, setSelectedOutlet] = useState("")
     const [phone, setPhone] = useState("")
     const [address, setAddress] = useState("")
+    const [manualIp, setManualIp] = useState("")
+    const [manualCidr, setManualCidr] = useState("24")
+    const [latitude, setLatitude] = useState("")
+    const [longitude, setLongitude] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Table State for Active Tab
@@ -76,8 +86,52 @@ export default function Resellers() {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
             fetchActiveResellers(id)
             fetchOutlets(id)
+            fetchActiveResellers(id)
+            fetchOutlets(id)
+            fetchConfiguration(id)
         }
     }, [public_id, fetchActiveResellers, fetchOutlets])
+
+    const fetchConfiguration = async (businessId: string) => {
+        try {
+            const response = await axios.get(`businesses/${businessId}/configurations`)
+            if (response.data.success) {
+                const config = response.data.data
+                setIpStart(config.reseller_ip_start || "")
+                setIpCidr(config.reseller_ip_cidr || "24")
+            }
+        } catch (error) {
+            console.error("Failed to fetch configuration", error)
+        }
+    }
+
+    const handleSaveConfiguration = async () => {
+        if (!ipStart) {
+            toast.error("IP Start wajib diisi")
+            return
+        }
+
+        setIsSubmitting(true)
+        try {
+            const id = Array.isArray(public_id) ? public_id[0] : public_id
+            if (!id) return
+
+            await axios.post(`businesses/${id}/configurations`, {
+                configs: {
+                    reseller_ip_start: ipStart,
+                    reseller_ip_cidr: ipCidr
+                }
+            })
+
+            toast.success("Konfigurasi berhasil disimpan")
+            setIsConfigDialogOpen(false)
+        } catch (error) {
+            console.error(error)
+            toast.error("Gagal menyimpan konfigurasi")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     const handleSubmit = async () => {
         if (!selectedOutlet) {
@@ -96,7 +150,11 @@ export default function Resellers() {
                 outlet_public_id: selectedOutlet,
                 name,
                 phone,
-                address
+                address,
+                ip_address: manualIp || undefined,
+                cidr: manualIp ? parseInt(manualCidr) : undefined,
+                latitude: latitude ? parseFloat(latitude) : undefined,
+                longitude: longitude ? parseFloat(longitude) : undefined,
             })
             toast.success("Reseller berhasil ditambahkan. Menunggu instalasi.")
             setIsDialogOpen(false)
@@ -105,6 +163,10 @@ export default function Resellers() {
             setPhone("")
             setAddress("")
             setSelectedOutlet("")
+            setManualIp("")
+            setManualCidr("24")
+            setLatitude("")
+            setLongitude("")
             // Refresh inactive resellers
             // fetchInactiveResellers(id)
         } catch (error: any) {
@@ -203,9 +265,17 @@ export default function Resellers() {
             cell: ({ row }) => <div className="font-mono text-xs">{row.getValue("code")}</div>,
         },
         {
-            accessorKey: "outlet.name",
             header: "Outlet",
             cell: ({ row }) => <div>{row.original.outlet?.name || "-"}</div>,
+        },
+        {
+            accessorKey: "ip_address",
+            header: "IP Address",
+            cell: ({ row }) => (
+                <div className="font-mono text-xs">
+                    {row.original.ip_address ? `${row.original.ip_address}/${row.original.cidr}` : "-"}
+                </div>
+            ),
         },
         {
             accessorKey: "phone",
@@ -435,12 +505,120 @@ export default function Resellers() {
                                         />
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="col-span-2 space-y-2">
+                                        <Label htmlFor="manual-ip">IP Address (Opsional)</Label>
+                                        <Input
+                                            id="manual-ip"
+                                            placeholder="contoh: 192.168.1.100"
+                                            value={manualIp}
+                                            onChange={(e) => setManualIp(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="manual-cidr">CIDR</Label>
+                                        <Input
+                                            id="manual-cidr"
+                                            type="number"
+                                            placeholder="24"
+                                            value={manualCidr}
+                                            onChange={(e) => setManualCidr(e.target.value)}
+                                            disabled={!manualIp}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="latitude">Latitude</Label>
+                                        <Input
+                                            id="latitude"
+                                            placeholder="Contoh: -6.200000"
+                                            value={latitude}
+                                            onChange={(e) => setLatitude(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="longitude">Longitude</Label>
+                                        <Input
+                                            id="longitude"
+                                            placeholder="Contoh: 106.816666"
+                                            value={longitude}
+                                            onChange={(e) => setLongitude(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
                                     Batal
                                 </Button>
                                 <Button onClick={handleSubmit} disabled={isSubmitting}>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        "Simpan"
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="ml-2">
+                                <Settings className="mr-2 h-4 w-4" /> Konfigurasi IP
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Konfigurasi IP Reseller</DialogTitle>
+                                <DialogDescription>
+                                    Atur rentang IP address untuk alokasi otomatis ke reseller baru.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="ip-start">Starting IP Address (Network)</Label>
+                                    <Input
+                                        id="ip-start"
+                                        placeholder="Contoh: 10.10.0.0"
+                                        value={ipStart}
+                                        onChange={(e) => setIpStart(e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Masukkan IP Network awal (misal: 10.10.0.0). Sistem akan mengalokasikan subnet secara berurutan.
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ip-cidr">CIDR (Subnet Mask)</Label>
+                                    <Select
+                                        value={ipCidr}
+                                        onValueChange={setIpCidr}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih CIDR" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="32">/32 (1 IP)</SelectItem>
+                                            <SelectItem value="30">/30 (4 IPs - 2 Usable)</SelectItem>
+                                            <SelectItem value="29">/29 (8 IPs - 6 Usable)</SelectItem>
+                                            <SelectItem value="28">/28 (16 IPs)</SelectItem>
+                                            <SelectItem value="24">/24 (256 IPs)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Ukuran subnet yang dialokasikan untuk setiap reseller.
+                                    </p>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsConfigDialogOpen(false)} disabled={isSubmitting}>
+                                    Batal
+                                </Button>
+                                <Button onClick={handleSaveConfiguration} disabled={isSubmitting}>
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

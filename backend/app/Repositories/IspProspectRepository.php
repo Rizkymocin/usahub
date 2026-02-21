@@ -26,7 +26,7 @@ class IspProspectRepository
     public function findByPublicId(string $publicId): ?IspProspect
     {
         return IspProspect::where('public_id', $publicId)
-            ->with(['sales', 'approvedByUser', 'outlet', 'maintenanceIssue', 'readinessConfirmations.user', 'assignedTechnician'])
+            ->with(['sales', 'approvedByUser', 'outlet', 'maintenanceIssue', 'readinessConfirmations.user', 'assignedTechnician', 'uplinkReseller'])
             ->first();
     }
 

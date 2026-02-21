@@ -38,6 +38,8 @@ import { ArrowLeft, Plus, FolderTree, Trash2 } from "lucide-react"
 import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/business.selectors"
 import Outlets from "./Outlets"
 import Resellers from "./Resellers"
+import dynamic from "next/dynamic"
+const ResellersMap = dynamic(() => import("./ResellersMap"), { ssr: false })
 import Topups from "./Topups"
 import Stock from "./Stock"
 import Vouchers from "./Vouchers"
@@ -97,7 +99,20 @@ export default function DetailUsahaAdminPage() {
                 </TabsContent >
 
                 {isMounted && business?.category === 'isp' && <TabsContent value="outlets"><Outlets /></TabsContent>}
-                {isMounted && business?.category === 'isp' && <TabsContent value="resellers"><Resellers /></TabsContent>}
+                {isMounted && business?.category === 'isp' && (
+                    <TabsContent value="resellers">
+                        <Tabs defaultValue="daftar" className="w-full">
+                            <div className="mb-4">
+                                <TabsList className="bg-slate-100 p-1 rounded-lg">
+                                    <TabsTrigger value="daftar">Daftar Reseller</TabsTrigger>
+                                    <TabsTrigger value="peta">Peta Distribusi Jaringan</TabsTrigger>
+                                </TabsList>
+                            </div>
+                            <TabsContent value="daftar"><Resellers /></TabsContent>
+                            <TabsContent value="peta"><ResellersMap /></TabsContent>
+                        </Tabs>
+                    </TabsContent>
+                )}
 
                 {isMounted && business?.category === 'isp' && (
                     <TabsContent value="voucher-main">

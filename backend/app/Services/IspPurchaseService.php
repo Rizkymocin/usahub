@@ -9,16 +9,22 @@ use App\Repositories\IspPurchaseRepository;
 use App\Repositories\BusinessRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\AccountingRuleEngine;
 
 class IspPurchaseService
 {
     protected $repository;
     protected $businessRepository;
+    protected $accountingRuleEngine;
 
-    public function __construct(IspPurchaseRepository $repository, BusinessRepository $businessRepository)
-    {
+    public function __construct(
+        IspPurchaseRepository $repository,
+        BusinessRepository $businessRepository,
+        AccountingRuleEngine $accountingRuleEngine
+    ) {
         $this->repository = $repository;
         $this->businessRepository = $businessRepository;
+        $this->accountingRuleEngine = $accountingRuleEngine;
     }
 
     public function getPurchasesByBusiness(string $businessPublicId, int $tenantId)
@@ -114,6 +120,31 @@ class IspPurchaseService
                 $itemData['isp_purchase_id'] = $purchase->id;
                 IspPurchaseItem::create($itemData);
             }
+
+            // Accounting Event Emission
+            $paymentMethod = $data['payment_method'] ?? 'cash'; // Default to cash
+            $purchaseCategory = ($data['type'] === 'maintenance') ? 'inventory' : 'expense';
+
+            $eventCode = ($paymentMethod === 'credit') ? 'EVT_PURCHASE_ON_CREDIT' : 'EVT_PURCHASE_PAID';
+
+            $this->accountingRuleEngine->emitEvent([
+                'event_code' => $eventCode,
+                'ref_type' => 'isp_purchase',
+                'ref_id' => $purchase->id,
+                'occurred_at' => now(),
+                'actor' => [
+                    'user_id' => $userId,
+                    'channel_type' => 'web', // Assuming web mainly
+                ],
+                'payload' => [
+                    'total_amount' => $totalAmount,
+                    'purchase_category' => $purchaseCategory,
+                    'purchase_id' => $purchase->id,
+                    'payment_method' => $paymentMethod,
+                ],
+                'tenant_id' => $tenantId,
+                'business_id' => $business->id,
+            ]);
 
             return $purchase->load(['items.maintenanceItem', 'createdBy']);
         });

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { dashboardService } from "@/services/dashboard.service"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -76,12 +77,77 @@ const topPerformers = [
     { rank: 3, name: "Kopi Kenangan Bandung", score: 92, badge: "🥉" },
 ]
 
-export default function AdminDashboard() {
+export default function OwnerDashboard() {
     const [date, setDate] = useState<string>("")
+    const [isLoading, setIsLoading] = useState(true)
+    const [dashboardData, setDashboardData] = useState<any>(null)
 
     useEffect(() => {
         setDate(new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }))
+
+        const fetchData = async () => {
+            try {
+                const response = await dashboardService.getOwnerDashboard();
+                if (response.success) {
+                    setDashboardData(response.data);
+                }
+            } catch (error) {
+                console.error("Failed to load dashboard data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
     }, [])
+
+    if (isLoading) {
+        return <div className="p-6">Loading dashboard data...</div>;
+    }
+
+    const { stats: fetchedStats, business_performance, top_performers } = dashboardData || {};
+
+    const activeStats = [
+        {
+            title: "Total Usaha Anda",
+            value: fetchedStats?.total_businesses || "0",
+            change: "Active",
+            trend: "up",
+            icon: Building2,
+            color: "text-blue-600",
+            bgColor: "bg-blue-50"
+        },
+        {
+            title: "Total Pendapatan",
+            value: fetchedStats?.total_revenue || "Rp 0",
+            change: "All Time",
+            trend: "up",
+            icon: DollarSign,
+            color: "text-green-600",
+            bgColor: "bg-green-50"
+        },
+        {
+            title: "Total Pengguna (Aktif)",
+            value: fetchedStats?.total_customers || "0",
+            change: "Active",
+            trend: "up",
+            icon: Users,
+            color: "text-purple-600",
+            bgColor: "bg-purple-50"
+        },
+        {
+            title: "Pertumbuhan Bulanan",
+            value: "0%",
+            change: "-",
+            trend: "up",
+            icon: Activity,
+            color: "text-orange-600",
+            bgColor: "bg-orange-50"
+        }
+    ];
+
+    const displayPerformance = business_performance || businessPerformance;
+    const displayPerformers = top_performers || topPerformers;
 
     return (
         <div className="p-6 space-y-6">
@@ -98,7 +164,7 @@ export default function AdminDashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => {
+                {activeStats.map((stat, index) => {
                     const Icon = stat.icon
                     return (
                         <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
@@ -147,13 +213,13 @@ export default function AdminDashboard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {businessPerformance.map((business, index) => (
+                                {displayPerformance.map((business: any, index: number) => (
                                     <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
                                         <td className="py-3 px-4 font-medium text-gray-900">{business.name}</td>
-                                        <td className="py-3 px-4 text-gray-600">{business.customers.toLocaleString()}</td>
-                                        <td className="py-3 px-4 text-gray-600">{business.revenue}</td>
+                                        <td className="py-3 px-4 text-gray-600">{business.customers?.toLocaleString()}</td>
+                                        <td className="py-3 px-4 text-gray-600">{business.revenue_formatted || business.revenue}</td>
                                         <td className="py-3 px-4">
-                                            <span className={`flex items-center ${business.growth.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                                            <span className={`flex items-center ${business.growth?.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
                                                 {business.growth.startsWith('+') ? (
                                                     <TrendingUp className="w-4 h-4 mr-1" />
                                                 ) : (
@@ -178,18 +244,18 @@ export default function AdminDashboard() {
                 <Card className="p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Top Performa Usaha</h2>
                     <div className="space-y-4">
-                        {topPerformers.map((performer) => (
-                            <div key={performer.rank} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border">
+                        {displayPerformers.map((performer: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-4 bg-linear-to-r from-gray-50 to-white rounded-lg border">
                                 <div className="flex items-center space-x-3">
-                                    <span className="text-2xl">{performer.badge}</span>
+                                    <span className="text-2xl">{idx === 0 ? "🏆" : idx === 1 ? "🥈" : "🥉"}</span>
                                     <div>
                                         <p className="font-semibold text-gray-900">{performer.name}</p>
-                                        <p className="text-sm text-gray-500">Rank #{performer.rank}</p>
+                                        <p className="text-sm text-gray-500">Rank #{idx + 1}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-bold text-gray-900">{performer.score}</p>
-                                    <p className="text-xs text-gray-500">Score</p>
+                                    <p className="text-lg font-bold text-gray-900">{performer.revenue_formatted}</p>
+                                    <p className="text-xs text-gray-500">Revenue</p>
                                 </div>
                             </div>
                         ))}
@@ -217,7 +283,7 @@ export default function AdminDashboard() {
                         </div>
                     ))}
                 </div>
-            </Card>
-        </div>
+            </Card >
+        </div >
     )
 }

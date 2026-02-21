@@ -12,7 +12,12 @@ export interface Reseller {
         public_id?: string;
     };
     is_active: boolean;
+    ip_address?: string;
+    cidr?: number;
     public_id?: string;
+    latitude?: number;
+    longitude?: number;
+    uplink_reseller_id?: number | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -28,7 +33,7 @@ interface ResellerState {
     fetchResellers: (businessId: string) => Promise<void>;
     fetchActiveResellers: (businessId: string) => Promise<void>;
     fetchInactiveResellers: (businessId: string) => Promise<void>;
-    addReseller: (businessId: string, data: { outlet_public_id: string; name: string; phone: string; address: string }) => Promise<void>;
+    addReseller: (businessId: string, data: { outlet_public_id: string; name: string; phone: string; address: string; ip_address?: string; cidr?: number; latitude?: number; longitude?: number }) => Promise<void>;
     updateReseller: (businessId: string, resellerCode: string, data: any) => Promise<void>;
     deleteReseller: (businessId: string, resellerCode: string) => Promise<void>;
     activateReseller: (businessId: string, resellerCode: string) => Promise<void>;

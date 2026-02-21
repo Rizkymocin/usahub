@@ -64,16 +64,6 @@ export default function DetailUsahaPage() {
                 <TabsList className="w-full">
                     <TabsTrigger value="account">Akun (COA)</TabsTrigger>
                     <TabsTrigger value="users">Pengguna</TabsTrigger>
-                    {business?.category === 'isp' && (
-                        <>
-                            <TabsTrigger value="outlets">Outlet</TabsTrigger>
-                            <TabsTrigger value="resellers">Reseller</TabsTrigger>
-                            <TabsTrigger value="topups">Topup</TabsTrigger>
-                            <TabsTrigger value="vouchers">Voucher</TabsTrigger>
-                        </>
-                    )}
-                    <TabsTrigger value="transaction" disabled>Transaksi (Coming Soon)</TabsTrigger>
-                    <TabsTrigger value="report" disabled>Laporan (Coming Soon)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">
@@ -82,14 +72,6 @@ export default function DetailUsahaPage() {
                 <TabsContent value="users">
                     <User />
                 </TabsContent >
-                {business?.category === 'isp' && (
-                    <>
-                        <TabsContent value="outlets"><Outlets /></TabsContent>
-                        <TabsContent value="resellers"><Resellers /></TabsContent>
-                        <TabsContent value="topups"><Topups /></TabsContent>
-                        <TabsContent value="vouchers"><Vouchers /></TabsContent>
-                    </>
-                )}
             </Tabs >
         </div >
     )

@@ -140,6 +140,7 @@ class IspProspectController extends Controller
         $validated = $request->validate([
             'note' => 'nullable|string',
             'commission_amount' => 'nullable|numeric|min:0',
+            'uplink_reseller_id' => 'nullable|exists:isp_resellers,id',
         ]);
 
         try {
@@ -147,7 +148,8 @@ class IspProspectController extends Controller
                 $prospectPublicId,
                 $request->user()->id,
                 $validated['note'] ?? null,
-                $validated['commission_amount'] ?? 0
+                $validated['commission_amount'] ?? 0,
+                $validated['uplink_reseller_id'] ?? null
             );
             return response()->json([
                 'success' => true,

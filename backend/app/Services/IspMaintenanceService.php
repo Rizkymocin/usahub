@@ -98,9 +98,13 @@ class IspMaintenanceService
             'action_taken' => $data['action_taken'],
             'result' => $data['result'],
             'notes' => $data['notes'] ?? null,
-            'notes' => $data['notes'] ?? null,
             'photos' => $this->handlePhotoUploads($data['photos'] ?? null),
         ]);
+
+        // Handle Participants
+        if (isset($data['participant_ids']) && is_array($data['participant_ids'])) {
+            $log->participants()->attach($data['participant_ids']);
+        }
 
         // Handle Inventory Items
         if (isset($data['items']) && is_array($data['items'])) {

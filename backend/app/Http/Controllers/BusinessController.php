@@ -28,7 +28,11 @@ class BusinessController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Businesses retrieved successfully',
-                'data'    => $businesses
+                'data'    => $businesses,
+                'meta'    => [
+                    'max_business' => $tenant->plan ? $tenant->plan->max_business : 1,
+                    'current_count' => $businesses->count()
+                ]
             ]);
         }
 
@@ -121,7 +125,8 @@ class BusinessController extends Controller
             $tenantId = $business->tenant_id;
         }
 
-        $users = $this->service->getBusinessUsers($business_public_id, $tenantId);
+        $role = $request->query('role');
+        $users = $this->service->getBusinessUsers($business_public_id, $tenantId, $role);
         if (!$users) {
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
@@ -319,6 +324,8 @@ class BusinessController extends Controller
             'name' => 'required|string',
             'phone' => 'required|string',
             'address' => 'nullable|string',
+            'ip_address' => 'nullable|ip',
+            'cidr' => 'nullable|integer|between:0,32',
         ]);
 
         try {

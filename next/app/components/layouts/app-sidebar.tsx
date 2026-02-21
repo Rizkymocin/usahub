@@ -3,14 +3,19 @@
 import * as React from "react"
 import {
   BookOpen,
+  Settings,
+  Users,
+  ShieldAlert,
+  Wallet,
+  Wrench,
+  FileText,
+  Home,
+  Store,
+  MonitorCog,
+  Database,
   Bot,
   BriefcaseBusiness,
-  CheckSquare,
-  Database,
-  Home,
-  MonitorCog,
-  Settings,
-  Store,
+  CheckSquare
 } from "lucide-react"
 
 import { NavMain } from "./nav-main";
@@ -74,10 +79,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Usaha",
             url: "/dashboard/usaha",
           },
-          {
-            title: "Pengguna",
-            url: "/dashboard/pengguna",
-          },
         ],
       },
       {
@@ -106,32 +107,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       // Reports
       {
-        title: "Ringkasan Eksekutif",
+        title: "Laporan",
         url: "#",
-        icon: BookOpen,
-        roles: ["owner"],
+        icon: FileText,
+        roles: ["owner", "business_admin", "super-admin"],
         items: [
           {
-            title: "Keuangan",
+            title: "Ringkasan Eksekutif",
             url: "/dashboard/reports/keuangan",
           },
-          {
-            title: "Perbandingan Bisnis",
-            url: "/dashboard/reports/perbandingan",
-          },
-          {
-            title: "Operasional",
-            url: "/dashboard/reports/operasional",
-          }
-        ],
-      },
-
-      {
-        title: "Laporan Usaha",
-        url: "#",
-        icon: BookOpen,
-        roles: ["business_admin"],
-        items: [
           {
             title: "Laporan Usaha",
             url: "/dashboard/reports/usaha",
@@ -142,19 +126,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
-      // Settings
-      {
-        title: "Pengaturan",
-        url: "#",
-        icon: Settings,
-        roles: ["owner"],
-        items: [
-          {
-            title: "Manajemen User",
-            url: "/dashboard/settings/users",
-          }
-        ]
-      }
     ],
   }
 

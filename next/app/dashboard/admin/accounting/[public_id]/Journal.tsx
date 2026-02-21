@@ -148,10 +148,10 @@ export default function Journal() {
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                {format(new Date(entry.journal_date + 'Z'), "dd MMM yyyy", { locale: localeId })}
+                                                {format(new Date(entry.journal_date), "dd MMM yyyy", { locale: localeId })}
                                             </div>
                                             <div className="text-xs text-muted-foreground">
-                                                {format(new Date(entry.journal_date + 'Z'), "HH:mm")}
+                                                {format(new Date(entry.created_at + 'Z'), "HH:mm")}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -206,7 +206,7 @@ export default function Journal() {
                         <DialogHeader>
                             <DialogTitle>Detail Jurnal Transaksi</DialogTitle>
                             <DialogDescription>
-                                {selectedEntry && format(new Date(selectedEntry.journal_date), "dd MMMM yyyy HH:mm", { locale: localeId })}
+                                {selectedEntry && format(new Date(selectedEntry.created_at + 'Z'), "dd MMMM yyyy HH:mm", { locale: localeId })}
                             </DialogDescription>
                         </DialogHeader>
                         {selectedEntry && (

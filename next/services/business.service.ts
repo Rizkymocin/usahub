@@ -8,5 +8,9 @@ export const businessService = {
     listBusinesses: async () => {
         const response = await axios.get('/businesses');
         return response.data;
+    },
+    getBusinessesByAdmin: async () => {
+        const response = await axios.get('/business-by-admin');
+        return response.data;
     }
 };

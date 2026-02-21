@@ -28,6 +28,7 @@ import { ArrowLeft, Plus, FolderTree, Trash2 } from "lucide-react"
 import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/business.selectors"
 import Penjualan from "./Penjualan"
 import Pembelian from "./Pembelian"
+import PembayaranTab from "./PembayaranTab"
 
 
 export default function DetailUsahaAdminPage() {
@@ -66,6 +67,7 @@ export default function DetailUsahaAdminPage() {
                 <TabsList className="w-full bg-primary text-primary-foreground">
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground active" value="penjualan">Penjualan</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="pembelian">Pembelian</TabsTrigger>
+                    <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="pembayaran">Pembayaran</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="penjualan" className="space-y-4">
@@ -73,6 +75,9 @@ export default function DetailUsahaAdminPage() {
                 </TabsContent>
                 <TabsContent value="pembelian">
                     <Pembelian />
+                </TabsContent >
+                <TabsContent value="pembayaran">
+                    <PembayaranTab />
                 </TabsContent >
             </Tabs >
         </div >

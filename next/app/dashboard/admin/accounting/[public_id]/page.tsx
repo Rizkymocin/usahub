@@ -36,6 +36,7 @@ import { useBusinessName, useBusinessActions, useBusiness } from "@/stores/busin
 import Accounts from "./Accounts"
 import Journal from "./Journal"
 import Periods from "./Periods"
+import ManualJournal from "./ManualJournal"
 
 
 export default function DetailAkuntansiAdminPage() {
@@ -75,6 +76,7 @@ export default function DetailAkuntansiAdminPage() {
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="account">Akun (COA)</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="journal">Jurnal</TabsTrigger>
                     <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="periods">Periode</TabsTrigger>
+                    <TabsTrigger className="active:bg-primary active:text-primary text-primary-foreground" value="manual">Jurnal Manual</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-4">
@@ -87,6 +89,10 @@ export default function DetailAkuntansiAdminPage() {
 
                 <TabsContent value="periods" className="space-y-4">
                     <Periods />
+                </TabsContent>
+
+                <TabsContent value="manual" className="space-y-4">
+                    <ManualJournal />
                 </TabsContent>
             </Tabs >
         </div >

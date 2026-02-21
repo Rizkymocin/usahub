@@ -19,12 +19,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useResellerStore } from "@/stores/reseller.store";
 
 export default function CalonPasangBaru() {
     const { public_id } = useParams();
     const businessId = Array.isArray(public_id) ? public_id[0] : public_id || '';
 
     const { prospects, isLoading, fetchProspects, approveProspect, rejectProspect, reApproveProspect, activateProspect, assignTechnician } = useProspectStore();
+    const { activeResellers, fetchActiveResellers } = useResellerStore();
 
     const [activeTab, setActiveTab] = useState('waiting');
     const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
@@ -32,6 +35,7 @@ export default function CalonPasangBaru() {
     const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
     const [actionNote, setActionNote] = useState('');
     const [commissionAmount, setCommissionAmount] = useState<number>(0);
+    const [selectedUplinkId, setSelectedUplinkId] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Assign technician dialog
@@ -46,8 +50,9 @@ export default function CalonPasangBaru() {
     useEffect(() => {
         if (businessId) {
             fetchProspects(businessId);
+            fetchActiveResellers(businessId);
         }
-    }, [businessId, fetchProspects]);
+    }, [businessId, fetchProspects, fetchActiveResellers]);
 
     const filteredProspects = prospects.filter((p) => {
         switch (activeTab) {
@@ -65,6 +70,7 @@ export default function CalonPasangBaru() {
         setActionType(type);
         setActionNote('');
         setCommissionAmount(0);
+        setSelectedUplinkId('');
         setIsActionDialogOpen(true);
     };
 
@@ -79,7 +85,7 @@ export default function CalonPasangBaru() {
         try {
             switch (actionType) {
                 case 'approve':
-                    await approveProspect(businessId, selectedProspect.public_id, actionNote || undefined, commissionAmount);
+                    await approveProspect(businessId, selectedProspect.public_id, actionNote || undefined, commissionAmount, selectedUplinkId ? parseInt(selectedUplinkId) : undefined);
                     toast.success(`${selectedProspect.name} berhasil disetujui. Tiket instalasi dibuat.`);
                     break;
                 case 'reject':
@@ -320,23 +326,47 @@ export default function CalonPasangBaru() {
                         <div className="space-y-4 py-2">
                             {/* Commission (Optional) - Only for approve */}
                             {actionType === 'approve' && (
-                                <div className="space-y-2">
-                                    <Label>Komisi Sales (Opsional)</Label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-2.5 text-gray-500 text-sm">Rp</span>
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            value={commissionAmount}
-                                            onChange={(e) => setCommissionAmount(Number(e.target.value))}
-                                            className="pl-9"
-                                            placeholder="0"
-                                        />
+                                <>
+                                    <div className="space-y-2">
+                                        <Label>Uplink Reseller (Opsional)</Label>
+                                        <Select
+                                            value={selectedUplinkId}
+                                            onValueChange={setSelectedUplinkId}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Uplink Reseller" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {activeResellers.map((reseller) => (
+                                                    <SelectItem key={reseller.id} value={String(reseller.id)}>
+                                                        {reseller.name} ({reseller.code})
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            Reseller sumber internet untuk instalasi ini.
+                                        </p>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Masukkan nilai komisi jika ada. Jurnal akan dibuat otomatis.
-                                    </p>
-                                </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Komisi Sales (Opsional)</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-gray-500 text-sm">Rp</span>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                value={commissionAmount}
+                                                onChange={(e) => setCommissionAmount(Number(e.target.value))}
+                                                className="pl-9"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Masukkan nilai komisi jika ada. Jurnal akan dibuat otomatis.
+                                        </p>
+                                    </div>
+                                </>
                             )}
 
                             {/* Note Field - Visible for everyone except activate */}

@@ -19,6 +19,7 @@ class IspProspect extends Model
         'business_id',
         'outlet_id',
         'sales_id',
+        'uplink_reseller_id',
         'name',
         'phone',
         'address',
@@ -33,6 +34,8 @@ class IspProspect extends Model
         'activated_at',
         'maintenance_issue_id',
         'assigned_technician_id',
+        'ip_address',
+        'cidr',
     ];
 
     protected $casts = [
@@ -72,6 +75,11 @@ class IspProspect extends Model
     public function sales(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sales_id');
+    }
+
+    public function uplinkReseller(): BelongsTo
+    {
+        return $this->belongsTo(IspReseller::class, 'uplink_reseller_id');
     }
 
     public function approvedByUser(): BelongsTo

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BusinessService
 {
@@ -133,6 +134,7 @@ class BusinessService
             ['code' => '2010', 'name' => 'Utang Voucher', 'type' => 'liability', 'parent' => '2000'],
             ['code' => '2020', 'name' => 'Hutang Komisi', 'type' => 'liability', 'parent' => '2000'],
             ['code' => '2030', 'name' => 'Pendapatan Diterima Dimuka', 'type' => 'liability', 'parent' => '2000'],
+            ['code' => '2040', 'name' => 'Hutang Operasional', 'type' => 'liability', 'parent' => '2000'], // Reimbursement/General Payable
 
             // Modal (3000)
             ['code' => '3010', 'name' => 'Modal Pemilik', 'type' => 'equity', 'parent' => '3000'],
@@ -176,7 +178,26 @@ class BusinessService
     {
         // Get account IDs for this business
         $accounts = [];
-        $accountCodes = ['1010', '1030', '1050', '2010', '2020', '2030', '4010', '5010', '5020'];
+        $accountCodes = [
+            '1010',
+            '1030',
+            '1050',
+            '2010',
+            '2020',
+            '2030',
+            '2040',
+            '3010',
+            '3020',
+            '3030',
+            '4010',
+            '5010',
+            '5020',
+            '5070',
+            '5080',
+            '5090',
+            '5100',
+            '5110',
+        ];
 
         foreach ($accountCodes as $code) {
             $account = \App\Models\Account::where('business_id', $business->id)
@@ -189,7 +210,7 @@ class BusinessService
         }
 
         if (empty($accounts)) {
-            \Log::warning("No accounts found for business {$business->id}, skipping accounting rules");
+            Log::warning("No accounts found for business {$business->id}, skipping accounting rules");
             return;
         }
 
@@ -242,22 +263,34 @@ class BusinessService
         return $this->repository->delete($business->id, $tenantId);
     }
 
-    public function getBusinessUsers(string $businessPublicId, int $tenantId): ?Collection
+    public function getBusinessUsers(string $businessPublicId, int $tenantId, $roles = null): ?Collection
     {
         $business = $this->repository->findByIdPublicId($businessPublicId, $tenantId);
         if (!$business) {
             return null;
         }
 
+        $query = $business->users();
+
+        if ($roles) {
+            // Support single role or array of roles
+            $roleNames = is_array($roles) ? $roles : explode(',', $roles);
+            $query->whereHas('roles', function ($q) use ($roleNames) {
+                $q->whereIn('name', $roleNames);
+            });
+        }
+
+        $users = $query->get();
+
         // Append role to each user for frontend display
-        $business->users->each(function ($user) {
+        $users->each(function ($user) {
             $user->role_names = $user->getRoleNames(); // Return all roles as strings
             $user->role = $user->role_names->first(function ($role) {
                 return in_array($role, ['business_admin', 'kasir']);
             }) ?? $user->role_names->first(); // Fallback to first role
         });
 
-        return $business->users;
+        return $users;
     }
 
     public function createBusinessUser(array $data, string $businessPublicId, int $tenantId): \App\Models\User
@@ -406,6 +439,8 @@ class BusinessService
                 'address' => $data['address'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
+                'ip_address' => $data['ip_address'] ?? null,
+                'cidr' => $data['cidr'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
                 'created_at' => now(),
             ]);

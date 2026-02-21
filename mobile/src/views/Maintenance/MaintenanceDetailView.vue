@@ -125,6 +125,28 @@
             </div>
           </div>
 
+          <!-- Team/Participants Section -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tim Lapangan / Rekan Kerja</label>
+            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/50">
+              <div v-if="loadingTechnicians" class="text-xs text-slate-400">Memuat data teknisi...</div>
+              <div v-else class="grid grid-cols-2 gap-2">
+                <label v-for="tech in availableTechnicians" :key="tech.id"
+                  class="flex items-center gap-2 p-2 rounded-lg border bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                  :class="form.participant_ids.includes(tech.id) ? 'border-primary bg-blue-50/50' : 'border-slate-200'">
+                  <input type="checkbox" :value="tech.id" v-model="form.participant_ids"
+                    class="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4" />
+                  <div class="text-sm">
+                    <span class="font-medium text-slate-700 block truncate">{{ tech.name }}</span>
+                  </div>
+                </label>
+              </div>
+              <p class="text-[10px] text-slate-400 px-1">
+                Centang nama rekan kerja yang membantu pengerjaan ini.
+              </p>
+            </div>
+          </div>
+
           <!-- Photos Section -->
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Dokumentasi (Opsional)</label>
@@ -318,25 +340,31 @@ const auth = useAuthStore();
 
 const issuePublicId = route.params.id as string;
 const submitting = ref(false);
+const loadingTechnicians = ref(false);
 
 const form = ref({
   action_taken: '',
   result: 'success',
   notes: '',
   items: [] as { item_id: string | number, quantity: number }[],
-  photos: [] as File[]
+  photos: [] as File[],
+  participant_ids: [] as number[]
 });
 const photoPreviews = ref<string[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const issue = computed(() => store.currentIssue);
 
-onMounted(() => {
-  if (auth.user?.business_public_id && issuePublicId) {
-    store.fetchIssueDetail(auth.user.business_public_id, issuePublicId);
-    store.fetchItems(auth.user.business_public_id);
-    expenseStore.fetchExpenses(auth.user.business_public_id, issuePublicId);
-  }
+onMounted(async () => {
+    if (auth.user?.business_public_id && issuePublicId) {
+        store.fetchIssueDetail(auth.user.business_public_id, issuePublicId);
+        store.fetchItems(auth.user.business_public_id);
+        expenseStore.fetchExpenses(auth.user.business_public_id, issuePublicId);
+        
+        loadingTechnicians.value = true;
+        await store.fetchTechnicians(auth.user.business_public_id);
+        loadingTechnicians.value = false;
+    }
 });
 
 const contactInfo = computed(() => {
@@ -373,6 +401,24 @@ const contactInfo = computed(() => {
 });
 
 const availableItems = computed(() => store.items);
+// Filter out myself AND the assigned PIC from the available list
+const availableTechnicians = computed(() => {
+   const currentUserId = auth.user?.id;
+   // Ensure we have a valid current user ID before filtering
+   if (!currentUserId) return store.technicians;
+
+   const assignedPicId = store.currentIssue?.assigned_technician_id;
+
+   return store.technicians.filter(u => {
+       // Exclude myself (handle loose comparison for string/number mismatch)
+       if (u.id == currentUserId) return false;
+       
+       // Exclude PIC (handle loose comparison)
+       if (assignedPicId && u.id == assignedPicId) return false;
+       
+       return true;
+   });
+});
 
 const addItem = () => {
   form.value.items.push({ item_id: '', quantity: 1 });

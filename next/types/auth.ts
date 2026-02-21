@@ -3,6 +3,7 @@ export interface User {
     name: string;
     email: string;
     role?: string;
+    roles?: any[];
     business_public_id?: string;
 }
 

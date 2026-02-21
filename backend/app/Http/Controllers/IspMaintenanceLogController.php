@@ -27,6 +27,8 @@ class IspMaintenanceLogController extends Controller
             'items.*.item_id' => 'required_with:items|exists:isp_maintenance_items,id',
             'items.*.quantity' => 'required_with:items|integer|min:1',
             'items.*.notes' => 'nullable|string',
+            'participant_ids' => 'nullable|array',
+            'participant_ids.*' => 'integer|exists:users,id',
         ]);
 
         $log = $this->service->logActivity($public_id, $issue_public_id, Auth::id(), $validated);

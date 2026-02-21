@@ -119,7 +119,11 @@ class AccountingRuleEngine
      */
     private function createJournalEntry(array $event): JournalEntry
     {
-        $description = $this->buildDescription($event);
+        // Use caller-supplied description (e.g. manual journals) if available,
+        // otherwise auto-generate from the event code.
+        $description = !empty($event['payload']['description'])
+            ? $event['payload']['description']
+            : $this->buildDescription($event);
 
         return $this->journalEntryRepository->create([
             'tenant_id' => $event['tenant_id'],
@@ -159,8 +163,18 @@ class AccountingRuleEngine
             ];
 
             // Add finance user if required
-            if ($rule->collector_required && isset($event['actor']['user_id'])) {
-                $lineData['finance_user_id'] = $event['actor']['user_id'];
+            if ($rule->collector_required) {
+                if (isset($event['actor']['user_id'])) {
+                    $lineData['finance_user_id'] = $event['actor']['user_id'];
+                }
+            } else {
+                // If not strictly a collector, but we have a payee in the payload (like sales_id or technician_id)
+                // we can store it in finance_user_id so it shows up in the journal UI
+                if (isset($event['payload']['sales_id'])) {
+                    $lineData['finance_user_id'] = $event['payload']['sales_id'];
+                } elseif (isset($event['payload']['technician_id'])) {
+                    $lineData['finance_user_id'] = $event['payload']['technician_id'];
+                }
             }
 
             // Add customer if present
