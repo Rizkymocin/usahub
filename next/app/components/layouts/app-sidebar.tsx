@@ -116,14 +116,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Ringkasan Eksekutif",
             url: "/dashboard/reports/keuangan",
           },
-          {
-            title: "Laporan Usaha",
-            url: "/dashboard/reports/usaha",
-          },
-          {
-            title: "Rekapitulasi",
-            url: "/dashboard/reports/recap",
-          },
         ],
       },
     ],
