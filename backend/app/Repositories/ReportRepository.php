@@ -295,26 +295,39 @@ class ReportRepository
             ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->whereIn('journal_entries.business_id', $businessIds)
             ->where('journal_entries.journal_date', '<', $startDate->startOfDay())
-            ->where('accounts.code', $accountCode)
+            ->where(function ($q) use ($accountCode) {
+                $q->where('accounts.code', $accountCode)
+                    ->orWhereExists(function ($sub) use ($accountCode) {
+                        $sub->select(DB::raw(1))
+                            ->from('accounts as parent')
+                            ->whereColumn('parent.id', 'accounts.parent_id')
+                            ->where('parent.code', $accountCode);
+                    });
+            })
             ->select(
                 'accounts.type',
                 DB::raw("SUM(CASE WHEN journal_lines.direction = 'DEBIT' THEN journal_lines.amount ELSE 0 END) as total_debit"),
                 DB::raw("SUM(CASE WHEN journal_lines.direction = 'CREDIT' THEN journal_lines.amount ELSE 0 END) as total_credit")
             )
             ->groupBy('accounts.type')
-            ->first();
+            ->get();
 
-        if (!$data) return 0.0;
+        if ($data->isEmpty()) return 0.0;
 
-        $debit = (float) $data->total_debit;
-        $credit = (float) $data->total_credit;
+        $totalBalance = 0.0;
+        foreach ($data as $row) {
+            $debit = (float) $row->total_debit;
+            $credit = (float) $row->total_credit;
 
-        // Normal balance rule
-        if (in_array($data->type, ['asset', 'expense'])) {
-            return $debit - $credit;
-        } else {
-            return $credit - $debit;
+            // Normal balance rule
+            if (in_array($row->type, ['asset', 'expense'])) {
+                $totalBalance += ($debit - $credit);
+            } else {
+                $totalBalance += ($credit - $debit);
+            }
         }
+
+        return $totalBalance;
     }
 
     /**
@@ -326,7 +339,15 @@ class ReportRepository
             ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->whereIn('journal_entries.business_id', $businessIds)
             ->whereBetween('journal_entries.journal_date', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->where('accounts.code', $accountCode)
+            ->where(function ($q) use ($accountCode) {
+                $q->where('accounts.code', $accountCode)
+                    ->orWhereExists(function ($sub) use ($accountCode) {
+                        $sub->select(DB::raw(1))
+                            ->from('accounts as parent')
+                            ->whereColumn('parent.id', 'accounts.parent_id')
+                            ->where('parent.code', $accountCode);
+                    });
+            })
             ->select(
                 'journal_entries.journal_date as date',
                 'journal_entries.description',
