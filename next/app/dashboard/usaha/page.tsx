@@ -5,8 +5,8 @@ import axios from "@/lib/axios"
 import { useAuthUser } from "@/stores/auth.selectors"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Plus, Building2, MapPin, Pencil, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Plus, Building2, MapPin, Pencil } from "lucide-react"
 
 interface Business {
     id: number
@@ -175,67 +175,76 @@ export default function UsahaPage() {
 
                 {isOwner && (
                     <div className="flex flex-col items-end">
-                        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
-                                    disabled={businesses.length >= planLimits.max_business}
-                                >
-                                    <Plus className="mr-2 h-4 w-4" /> Tambah Usaha
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Tambah Usaha Baru</DialogTitle>
-                                    <DialogDescription>
-                                        Masukkan detail usaha baru anda. Pastikan paket berlangganan anda mencukupi.
-                                        Limit Paket saat ini: {planLimits.max_business} usaha.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Nama Usaha</Label>
-                                        <Input
-                                            id="name"
-                                            placeholder="Contoh: Cafe Kenangan"
-                                            value={newName}
-                                            onChange={(e) => setNewName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="category">Kategori</Label>
-                                        <Select value={newCategory} onValueChange={setNewCategory}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Pilih Kategori" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="isp">Internet Service Provider</SelectItem>
-                                                <SelectItem value="atk">Alat Tulis Kantor</SelectItem>
-                                                <SelectItem value="cafe">Cafe & Coffee Shop</SelectItem>
-                                                <SelectItem value="food">Restaurant & Food</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="address">Alamat (Opsional)</Label>
-                                        <Textarea
-                                            id="address"
-                                            placeholder="Alamat lengkap usaha..."
-                                            value={newAddress}
-                                            onChange={(e) => setNewAddress(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                                    <Button onClick={handleAddBusiness} disabled={isSubmitting}>
-                                        {isSubmitting ? "Menyimpan..." : "Simpan"}
+                        <div className="flex gap-2">
+                            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+                                        disabled={businesses.length >= planLimits.max_business}
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" /> Tambah Usaha
                                     </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Tambah Usaha Baru</DialogTitle>
+                                        <DialogDescription>
+                                            Masukkan detail usaha baru anda. Pastikan paket berlangganan anda mencukupi.
+                                            Limit Paket saat ini: {planLimits.max_business} usaha.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name">Nama Usaha</Label>
+                                            <Input
+                                                id="name"
+                                                placeholder="Contoh: Cafe Kenangan"
+                                                value={newName}
+                                                onChange={(e) => setNewName(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="category">Kategori</Label>
+                                            <Select value={newCategory} onValueChange={setNewCategory}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Pilih Kategori" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="isp">Internet Service Provider</SelectItem>
+                                                    <SelectItem value="atk">Alat Tulis Kantor</SelectItem>
+                                                    <SelectItem value="cafe">Cafe & Coffee Shop</SelectItem>
+                                                    <SelectItem value="food">Restaurant & Food</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="address">Alamat (Opsional)</Label>
+                                            <Textarea
+                                                id="address"
+                                                placeholder="Alamat lengkap usaha..."
+                                                value={newAddress}
+                                                onChange={(e) => setNewAddress(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
+                                        <Button onClick={handleAddBusiness} disabled={isSubmitting}>
+                                            {isSubmitting ? "Menyimpan..." : "Simpan"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            {businesses.length >= planLimits.max_business && (
+                                <Link href="/dashboard/billing">
+                                    <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                                        <Zap className="mr-2 h-4 w-4" fill="currentColor" /> Upgrade
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
                         {businesses.length >= planLimits.max_business && (
-                            <p className="text-xs text-amber-600 mt-2">
+                            <p className="text-xs text-amber-600 mt-2 text-right">
                                 Limit paket berlangganan Anda ({planLimits.max_business} usaha) telah tercapai.
                             </p>
                         )}
@@ -371,6 +380,6 @@ export default function UsahaPage() {
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }
