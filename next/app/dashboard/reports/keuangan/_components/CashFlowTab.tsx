@@ -1,6 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+
+interface CashFlowChartItem {
+    month: string
+    inflow: number
+    outflow: number
+    net_cash_flow: number
+}
+
+interface CashFlowData {
+    inflow: number
+    outflow: number
+    net_cash_flow: number
+    chart_data: CashFlowChartItem[]
+}
 import { reportService, ReportFilters } from "@/services/report.service"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ArrowDownRight, ArrowUpRight, HandCoins } from "lucide-react"
@@ -16,24 +30,24 @@ import {
 } from 'recharts'
 
 export default function CashFlowTab({ filters, trigger }: { filters: ReportFilters, trigger: number }) {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState<CashFlowData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    useEffect(() => {
-        fetchData()
-    }, [trigger, filters.business_id])
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
             const result = await reportService.getCashFlow(filters)
             setData(result)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch Cash Flow", error)
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [filters])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData, trigger])
 
     if (isLoading) {
         return <div className="py-12 text-center text-muted-foreground animate-pulse">Memuat data Arus Kas...</div>
@@ -99,7 +113,7 @@ export default function CashFlowTab({ filters, trigger }: { filters: ReportFilte
                                         width={80}
                                     />
                                     <Tooltip
-                                        formatter={(value: any) => ['Rp ' + Number(value).toLocaleString('id-ID'), '']}
+                                        formatter={(value: string | number | undefined) => ['Rp ' + Number(value || 0).toLocaleString('id-ID'), '']}
                                         labelFormatter={(label) => `Bulan: ${label}`}
                                     />
                                     <Legend />

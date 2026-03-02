@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface Outlet {
     id?: number; // Kept optional just in case, but backend hides it
@@ -22,7 +23,7 @@ interface OutletState {
 
     fetchOutlets: (businessId: string) => Promise<void>;
     addOutlet: (businessId: string, data: { name: string; email: string; phone: string; address: string; role: string }) => Promise<void>;
-    updateOutlet: (businessId: string, outletPublicId: string, data: any) => Promise<void>;
+    updateOutlet: (businessId: string, outletPublicId: string, data: Record<string, unknown>) => Promise<void>;
     deleteOutlet: (businessId: string, outletPublicId: string) => Promise<void>;
 }
 
@@ -48,9 +49,9 @@ export const useOutletStore = create<OutletState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat outlet',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat outlet' : 'Gagal memuat outlet',
                 isLoading: false
             });
         }
@@ -68,16 +69,16 @@ export const useOutletStore = create<OutletState>((set, get) => ({
                 isLoading: false
             });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menambahkan outlet',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menambahkan outlet' : 'Gagal menambahkan outlet',
                 isLoading: false
             });
             throw error;
         }
     },
 
-    updateOutlet: async (businessId: string, outletPublicId: string, data: any) => {
+    updateOutlet: async (businessId: string, outletPublicId: string, data: Record<string, unknown>) => {
         // Optimistic update? Or loading state? Let's use loading for safety first.
         set({ isLoading: true, error: null });
         try {
@@ -90,9 +91,9 @@ export const useOutletStore = create<OutletState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate outlet',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate outlet' : 'Gagal mengupdate outlet',
                 isLoading: false
             });
             throw error;
@@ -111,9 +112,9 @@ export const useOutletStore = create<OutletState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menghapus outlet',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menghapus outlet' : 'Gagal menghapus outlet',
                 isLoading: false
             });
             throw error;

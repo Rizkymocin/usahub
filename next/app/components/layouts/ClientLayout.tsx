@@ -4,18 +4,18 @@ import { usePathname, useRouter } from "next/navigation"
 import MainLayout from "./MainLayout";
 import { useEffect } from "react";
 
+const useMainLayoutPath = [
+    "/dashboard"
+]
+
+const noLayoutPath = [
+    "/auth/login",
+    "/auth/register",
+]
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathName = usePathname();
     const router = useRouter();
-
-    const useMainLayoutPath = [
-        "/dashboard"
-    ]
-
-    const noLayoutPath = [
-        "/auth/login",
-        "/auth/register",
-    ]
 
     const useMainLayout = useMainLayoutPath.some(p => pathName.startsWith(p));
 

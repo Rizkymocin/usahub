@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useVoucherStore, VoucherProduct } from '@/stores/voucher.store';
+import { useVoucherStore } from '@/stores/voucher.store';
 import { useVoucherStockStore } from '@/stores/voucher-stock.store';
 
 interface AddStockDialogProps {
@@ -26,29 +26,19 @@ export default function AddStockDialog({ businessId, isOpen, onClose }: AddStock
     useEffect(() => {
         if (isOpen) {
             fetchVouchers(businessId);
-            setFormData({
-                voucher_product_id: '',
-                quantity: '',
-                purchase_price: '',
-                default_selling_price: '',
-                notes: ''
-            });
-            setError(null);
+            const timer = setTimeout(() => {
+                setFormData({
+                    voucher_product_id: '',
+                    quantity: '',
+                    purchase_price: '',
+                    default_selling_price: '',
+                    notes: ''
+                });
+                setError(null);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [isOpen, businessId, fetchVouchers]);
-
-    // Update selling price when product is selected
-    useEffect(() => {
-        if (formData.voucher_product_id) {
-            const product = vouchers.find(v => v.id === parseInt(formData.voucher_product_id));
-            if (product) {
-                setFormData(prev => ({
-                    ...prev,
-                    default_selling_price: product.selling_price.toString()
-                }));
-            }
-        }
-    }, [formData.voucher_product_id, vouchers]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,8 +58,12 @@ export default function AddStockDialog({ businessId, isOpen, onClose }: AddStock
                 notes: formData.notes
             });
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Gagal menambahkan stok');
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message || 'Gagal menambahkan stok');
+            } else {
+                setError('Gagal menambahkan stok');
+            }
         }
     };
 
@@ -99,7 +93,15 @@ export default function AddStockDialog({ businessId, isOpen, onClose }: AddStock
                         <label className="text-sm font-medium text-gray-700">Produk Voucher <span className="text-red-500">*</span></label>
                         <select
                             value={formData.voucher_product_id}
-                            onChange={(e) => setFormData({ ...formData, voucher_product_id: e.target.value })}
+                            onChange={(e) => {
+                                const productId = e.target.value;
+                                const product = vouchers.find(v => v.id === parseInt(productId));
+                                setFormData({
+                                    ...formData,
+                                    voucher_product_id: productId,
+                                    default_selling_price: product ? product.selling_price.toString() : formData.default_selling_price
+                                });
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         >

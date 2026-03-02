@@ -12,8 +12,9 @@ import {
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Label } from "@/components/ui/label"
+import { RegisterData } from "@/types/auth"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Eye, EyeOff } from "lucide-react"
 import {
@@ -23,9 +24,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import Image from "next/image"
 
 type RegisterFormProps = {
-    onSubmit: (data: any) => void,
+    onSubmit: (data: RegisterData) => void,
     isLoading?: boolean,
 } & Omit<React.ComponentProps<"div">, "onSubmit">
 
@@ -36,19 +38,18 @@ export function RegisterForm({
     ...props
 }: RegisterFormProps) {
     const searchParams = useSearchParams()
-    const [plan, setPlan] = useState("free")
+
+    const planParam = searchParams.get("plan")
+    const initialPlan = planParam && ["free", "starter", "growth"].includes(planParam) ? planParam : "free"
+
+    const [plan, setPlan] = useState(initialPlan)
     const [category, setCategory] = useState("isp")
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
 
-    useEffect(() => {
-        const planParam = searchParams.get("plan")
-        if (planParam && ["free", "starter", "growth"].includes(planParam)) {
-            setPlan(planParam)
-        }
-    }, [searchParams])
+
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -235,10 +236,11 @@ export function RegisterForm({
                         </FieldGroup>
                     </form>
                     <div className="bg-muted relative hidden md:block">
-                        <img
+                        <Image
                             src="https://images.unsplash.com/photo-1673287579248-1a785be29719?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                             alt="Office workspace"
-                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            fill
+                            className="object-cover dark:brightness-[0.2] dark:grayscale"
                         />
                     </div>
                 </CardContent>

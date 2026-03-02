@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { isAxiosError } from "axios"
 import { useParams } from "next/navigation"
 import { useStockRequestStore, StockRequest } from "@/stores/stock-request.store"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Loader2, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle, Eye } from "lucide-react"
 import { RefreshButton } from "@/components/ui/refresh-button"
 import {
@@ -81,8 +82,9 @@ export default function Stock() {
             toast.success("Permintaan stok berhasil disetujui")
             setIsApproveOpen(false)
             resetForm()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Gagal menyetujui permintaan")
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menyetujui permintaan" : "Gagal menyetujui permintaan"
+            toast.error(msg)
         } finally {
             setIsSubmitting(false)
         }
@@ -98,8 +100,9 @@ export default function Stock() {
             toast.success("Permintaan stok berhasil ditolak")
             setIsRejectOpen(false)
             resetForm()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Gagal menolak permintaan")
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menolak permintaan" : "Gagal menolak permintaan"
+            toast.error(msg)
         } finally {
             setIsSubmitting(false)
         }

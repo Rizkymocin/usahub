@@ -19,12 +19,12 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { ArrowLeft, Plus, FolderTree, Trash2 } from "lucide-react"
-import { useParams, useRouter } from "next/navigation"
+import { Plus, FolderTree, Trash2 } from "lucide-react"
+import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useBusinessName, useBusinessActions } from "@/stores/business.selectors"
+import { useBusinessActions } from "@/stores/business.selectors"
 import { useAccounts, useAccountActions, useIsAccountLoading } from "@/stores/account.selectors"
 import axios from "@/lib/axios"
 
@@ -109,7 +109,6 @@ const AccountItem = ({ node, level = 0, onDelete }: { node: TreeNode; level?: nu
 
 export default function Accounts() {
     const { public_id } = useParams()
-    const router = useRouter()
 
     // Use Store Hooks
     const accounts = useAccounts()
@@ -125,7 +124,6 @@ export default function Accounts() {
     const [newCode, setNewCode] = useState("")
     const [parentId, setParentId] = useState<string>("")
 
-    const businessName = useBusinessName()
     const { fetchBusiness } = useBusinessActions()
 
     useEffect(() => {
@@ -134,6 +132,7 @@ export default function Accounts() {
             fetchAccounts(id)
             fetchBusiness(id)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [public_id])
 
     // Update tree when accounts change
@@ -166,8 +165,9 @@ export default function Accounts() {
                 setNewCode("")
                 setParentId("")
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menambahkan akun"
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || "Gagal menambahkan akun"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -184,8 +184,9 @@ export default function Accounts() {
                 // Update Store directly
                 removeAccount(id)
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menghapus akun"
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            const msg = err.response?.data?.message || "Gagal menghapus akun"
             toast.error(msg)
         }
     }

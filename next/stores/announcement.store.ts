@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface Announcement {
     id: number;
@@ -48,9 +49,9 @@ export const useAnnouncementStore = create<AnnouncementState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat pengumuman',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat pengumuman' : 'Gagal memuat pengumuman',
                 isLoading: false
             });
         }
@@ -69,9 +70,9 @@ export const useAnnouncementStore = create<AnnouncementState>((set, get) => ({
                 isLoading: false
             });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menambahkan pengumuman',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menambahkan pengumuman' : 'Gagal menambahkan pengumuman',
                 isLoading: false
             });
             throw error;
@@ -90,9 +91,9 @@ export const useAnnouncementStore = create<AnnouncementState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate pengumuman',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate pengumuman' : 'Gagal mengupdate pengumuman',
                 isLoading: false
             });
             throw error;
@@ -111,9 +112,9 @@ export const useAnnouncementStore = create<AnnouncementState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menghapus pengumuman',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menghapus pengumuman' : 'Gagal menghapus pengumuman',
                 isLoading: false
             });
             throw error;

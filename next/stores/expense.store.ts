@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'
 
@@ -41,7 +41,7 @@ interface ExpenseStore {
     deleteExpense: (businessPublicId: string, expensePublicId: string) => Promise<void>
 }
 
-export const useExpenseStore = create<ExpenseStore>((set, get) => ({
+export const useExpenseStore = create<ExpenseStore>((set) => ({
     expenses: [],
     loading: false,
     error: null,
@@ -66,9 +66,10 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
             )
 
             set({ expenses: response.data.expenses, loading: false })
-        } catch (err: any) {
+        } catch (err) {
+            const message = err instanceof AxiosError ? err.response?.data?.message : null
             set({
-                error: err.response?.data?.message || 'Failed to fetch expenses',
+                error: message || 'Failed to fetch expenses',
                 loading: false
             })
         }
@@ -88,8 +89,9 @@ export const useExpenseStore = create<ExpenseStore>((set, get) => ({
             set(state => ({
                 expenses: state.expenses.filter(e => e.public_id !== expensePublicId)
             }))
-        } catch (err: any) {
-            set({ error: err.response?.data?.message || 'Failed to delete expense' })
+        } catch (err) {
+            const message = err instanceof AxiosError ? err.response?.data?.message : null
+            set({ error: message || 'Failed to delete expense' })
             throw err
         }
     }

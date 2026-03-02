@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { useOutletStore, Outlet } from "@/stores/outlet.store"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Plus, Loader2, MoreHorizontal, Trash2, Power, Phone, Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -37,7 +37,6 @@ import {
     flexRender,
     SortingState,
     ColumnFiltersState,
-    VisibilityState,
 } from "@tanstack/react-table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -57,8 +56,6 @@ export default function Outlets() {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [globalFilter, setGlobalFilter] = useState("")
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-    const [rowSelection, setRowSelection] = useState({})
     const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 5,
@@ -96,7 +93,8 @@ export default function Outlets() {
             setEmail("")
             setPhone("")
             setAddress("")
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
             toast.error(error.response?.data?.message || "Gagal menambahkan outlet")
         } finally {
             setIsSubmitting(false)
@@ -117,12 +115,12 @@ export default function Outlets() {
         // The API returns `data` which has `public_id`.
         // I should update the Outlet interface in store if I can, or cast it here.
         // For now, I will assume the object passed has public_id (as it comes from API).
-        const outletPublicId = (outlet as any).public_id; // Cast to any to access public_id until interface is updated
+        const outletPublicId = (outlet as Outlet & { public_id: string }).public_id; // Cast to access public_id until interface is updated
 
         try {
             await updateOutlet(businessId, outletPublicId, { status: !outlet.status })
             toast.success(outlet.status ? "Outlet dinonaktifkan" : "Outlet diaktifkan")
-        } catch (error) {
+        } catch {
             toast.error("Gagal mengubah status outlet")
         }
     }, [public_id, updateOutlet])
@@ -131,12 +129,12 @@ export default function Outlets() {
         if (!confirm("Apakah anda yakin ingin menghapus data outlet ini?")) return
         if (!public_id) return
         const businessId = Array.isArray(public_id) ? public_id[0] : public_id
-        const outletPublicId = (outlet as any).public_id;
+        const outletPublicId = (outlet as Outlet & { public_id: string }).public_id;
 
         try {
             await deleteOutlet(businessId, outletPublicId)
             toast.success("Outlet berhasil dihapus")
-        } catch (error) {
+        } catch {
             toast.error("Gagal menghapus outlet")
         }
     }, [public_id, deleteOutlet])

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import axios from '@/lib/axios'
+import { isAxiosError } from 'axios'
 
 export interface VoucherSaleItem {
     id: number
@@ -56,14 +57,14 @@ interface VoucherSaleState {
     error: string | null
 
     fetchSales: (businessPublicId: string) => Promise<void>
-    createSale: (businessPublicId: string, payload: any) => Promise<VoucherSale>
+    createSale: (businessPublicId: string, payload: Record<string, unknown>) => Promise<VoucherSale>
     addPayment: (businessPublicId: string, salePublicId: string, amount: number) => Promise<VoucherSale>
     fetchPendingDeliveries: (businessPublicId: string) => Promise<void>
     markAsDelivered: (businessPublicId: string, salePublicId: string, payload: { items: { voucher_product_id: number, delivered_qty: number }[], delivery_note?: string }) => Promise<VoucherSale>
     reset: () => void
 }
 
-export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
+export const useVoucherSaleStore = create<VoucherSaleState>((set) => ({
     sales: [],
     pendingDeliveries: [],
     isLoading: false,
@@ -79,15 +80,15 @@ export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
                     isLoading: false
                 })
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch voucher sales',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch voucher sales' : 'Failed to fetch voucher sales',
                 isLoading: false
             })
         }
     },
 
-    createSale: async (businessPublicId: string, payload: any) => {
+    createSale: async (businessPublicId: string, payload: Record<string, unknown>) => {
         set({ isLoading: true, error: null })
         try {
             const response = await axios.post(`businesses/${businessPublicId}/voucher-sales`, payload)
@@ -99,9 +100,9 @@ export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
                 return response.data.data
             }
             throw new Error('Failed to create sale')
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to create sale',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to create sale' : 'Failed to create sale',
                 isLoading: false
             })
             throw error
@@ -125,9 +126,9 @@ export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
                 return response.data.data
             }
             throw new Error('Failed to add payment')
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to add payment',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to add payment' : 'Failed to add payment',
                 isLoading: false
             })
             throw error
@@ -153,9 +154,9 @@ export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
                     isLoading: false
                 })
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch pending deliveries',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch pending deliveries' : 'Failed to fetch pending deliveries',
                 isLoading: false
             })
         }
@@ -180,9 +181,9 @@ export const useVoucherSaleStore = create<VoucherSaleState>((set, get) => ({
                 return response.data.data
             }
             throw new Error('Failed to mark as delivered')
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to mark as delivered',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to mark as delivered' : 'Failed to mark as delivered',
                 isLoading: false
             })
             throw error

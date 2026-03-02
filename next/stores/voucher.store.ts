@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface VoucherProduct {
     id?: number;
@@ -51,9 +52,9 @@ export const useVoucherStore = create<VoucherState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat voucher',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat voucher' : 'Gagal memuat voucher',
                 isLoading: false
             });
         }
@@ -72,9 +73,9 @@ export const useVoucherStore = create<VoucherState>((set, get) => ({
                 isLoading: false
             });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menambahkan voucher',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menambahkan voucher' : 'Gagal menambahkan voucher',
                 isLoading: false
             });
             throw error;
@@ -93,9 +94,9 @@ export const useVoucherStore = create<VoucherState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate voucher',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate voucher' : 'Gagal mengupdate voucher',
                 isLoading: false
             });
             throw error;
@@ -114,9 +115,9 @@ export const useVoucherStore = create<VoucherState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menghapus voucher',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menghapus voucher' : 'Gagal menghapus voucher',
                 isLoading: false
             });
             throw error;

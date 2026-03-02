@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import axios from "@/lib/axios"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Building2, Eye } from "lucide-react"
+import { Building2 } from "lucide-react"
 import Link from "next/link"
 import { Business } from "@/types/business"
 

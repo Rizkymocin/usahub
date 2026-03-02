@@ -2,10 +2,10 @@
 
 import { useParams } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
-import { useIspPurchaseStore, IspPurchase } from "@/stores/isp-purchase.store"
+import { useIspPurchaseStore } from "@/stores/isp-purchase.store"
 import { useBusiness } from "@/stores/business.selectors"
 import { useBusinessActions } from "@/stores/business.selectors"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,10 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, RefreshCw, Trash2, Loader2, Calendar as CalendarIcon, Search, Filter } from "lucide-react"
+import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Search, Filter } from "lucide-react"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { useForm, useFieldArray, ControllerRenderProps } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
@@ -45,6 +45,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+interface MaintenanceItem {
+    id: number;
+    name: string;
+    stock: number;
+    unit?: string;
+}
+
 export default function Pembelian() {
     const { public_id } = useParams()
     const finalPublicId = Array.isArray(public_id) ? public_id[0] : public_id
@@ -53,7 +60,7 @@ export default function Pembelian() {
     const { purchases, isLoading, fetchPurchases, createPurchase } = useIspPurchaseStore()
 
     const [isCreateOpen, setIsCreateOpen] = useState(false)
-    const [maintenanceItems, setMaintenanceItems] = useState<any[]>([])
+    const [maintenanceItems, setMaintenanceItems] = useState<MaintenanceItem[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Filter States
@@ -131,6 +138,7 @@ export default function Pembelian() {
             fetchPurchases(finalPublicId)
             fetchMaintenanceItems()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [finalPublicId, business, fetchBusiness, fetchPurchases])
 
     const fetchMaintenanceItems = async () => {
@@ -142,7 +150,7 @@ export default function Pembelian() {
             } else if (Array.isArray(response.data)) {
                 setMaintenanceItems(response.data)
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch maintenance items", error)
         }
     }
@@ -166,7 +174,8 @@ export default function Pembelian() {
                 type: "general",
                 items: [{ item_name: "", quantity: 1, unit: "pcs", unit_price: 0 }]
             })
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error(error)
             toast.error("Failed to create purchase")
         } finally {
             setIsSubmitting(false)
@@ -179,7 +188,7 @@ export default function Pembelian() {
 
     // Effect to update item names if maintenance item is selected
     useEffect(() => {
-        const subscription = form.watch((value, { name, type }) => {
+        const subscription = form.watch((value, { name }) => {
             if (name?.includes('isp_maintenance_item_id')) {
                 const index = parseInt(name.split('.')[1])
                 const itemId = value.items?.[index]?.isp_maintenance_item_id
@@ -217,7 +226,7 @@ export default function Pembelian() {
                                     <FormField
                                         control={form.control}
                                         name="purchase_date"
-                                        render={({ field }: { field: ControllerRenderProps<FormValues, "purchase_date"> }) => (
+                                        render={({ field }) => (
                                             <FormItem className="flex flex-col">
                                                 <FormLabel>Tanggal Pembelian</FormLabel>
                                                 <Popover>
@@ -258,7 +267,7 @@ export default function Pembelian() {
                                     <FormField
                                         control={form.control}
                                         name="type"
-                                        render={({ field }: { field: ControllerRenderProps<FormValues, "type"> }) => (
+                                        render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Tipe Pembelian</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -279,7 +288,7 @@ export default function Pembelian() {
                                     <FormField
                                         control={form.control}
                                         name="supplier_name"
-                                        render={({ field }: { field: ControllerRenderProps<FormValues, "supplier_name"> }) => (
+                                        render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Supplier (Opsional)</FormLabel>
                                                 <FormControl>
@@ -292,7 +301,7 @@ export default function Pembelian() {
                                     <FormField
                                         control={form.control}
                                         name="invoice_number"
-                                        render={({ field }: { field: ControllerRenderProps<FormValues, "invoice_number"> }) => (
+                                        render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Nomor Invoice (Opsional)</FormLabel>
                                                 <FormControl>
@@ -305,7 +314,7 @@ export default function Pembelian() {
                                     <FormField
                                         control={form.control}
                                         name="notes"
-                                        render={({ field }: { field: ControllerRenderProps<FormValues, "notes"> }) => (
+                                        render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Catatan</FormLabel>
                                                 <FormControl>
@@ -382,7 +391,7 @@ export default function Pembelian() {
                                                     <FormField
                                                         control={form.control}
                                                         name={`items.${index}.item_name`}
-                                                        render={({ field }: { field: ControllerRenderProps<FormValues, any> }) => (
+                                                        render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">Nama Item</FormLabel>
                                                                 <FormControl>
@@ -398,7 +407,7 @@ export default function Pembelian() {
                                                     <FormField
                                                         control={form.control}
                                                         name={`items.${index}.quantity`}
-                                                        render={({ field }: { field: ControllerRenderProps<FormValues, any> }) => (
+                                                        render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">Qty</FormLabel>
                                                                 <FormControl>
@@ -419,7 +428,7 @@ export default function Pembelian() {
                                                     <FormField
                                                         control={form.control}
                                                         name={`items.${index}.unit`}
-                                                        render={({ field }: { field: ControllerRenderProps<FormValues, any> }) => (
+                                                        render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">Satuan</FormLabel>
                                                                 <FormControl>
@@ -439,7 +448,7 @@ export default function Pembelian() {
                                                     <FormField
                                                         control={form.control}
                                                         name={`items.${index}.unit_price`}
-                                                        render={({ field }: { field: ControllerRenderProps<FormValues, any> }) => (
+                                                        render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel className="text-xs">Harga Satuan</FormLabel>
                                                                 <FormControl>

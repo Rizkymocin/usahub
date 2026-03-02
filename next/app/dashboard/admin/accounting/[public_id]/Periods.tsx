@@ -55,8 +55,9 @@ export default function Periods() {
             if (response.data.success) {
                 setPeriods(response.data.data)
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to fetch periods')
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err.response?.data?.message || 'Failed to fetch periods')
         } finally {
             setLoading(false)
         }
@@ -66,6 +67,7 @@ export default function Periods() {
         if (public_id) {
             fetchPeriods()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [public_id])
 
     const handleClosePeriod = async (period: AccountingPeriod) => {
@@ -78,8 +80,9 @@ export default function Periods() {
                 toast.success('Period closed successfully')
                 fetchPeriods()
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to close period')
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err.response?.data?.message || 'Failed to close period')
         } finally {
             setActionLoading(null)
             setConfirmDialog({ open: false, action: null, period: null })
@@ -96,8 +99,9 @@ export default function Periods() {
                 toast.success('Period reopened successfully')
                 fetchPeriods()
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to reopen period')
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            toast.error(err.response?.data?.message || 'Failed to reopen period')
         } finally {
             setActionLoading(null)
             setConfirmDialog({ open: false, action: null, period: null })

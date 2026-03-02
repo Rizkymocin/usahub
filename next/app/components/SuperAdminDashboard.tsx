@@ -6,7 +6,6 @@ import {
     TrendingUp,
     TrendingDown,
     Users,
-    Building2,
     DollarSign,
     CreditCard,
     ArrowUpRight,
@@ -230,7 +229,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-4">
                         {topTenants.map((tenant) => (
-                            <div key={tenant.rank} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 via-white to-gray-50 rounded-xl border-2 border-gray-100 hover:border-blue-200 transition-all">
+                            <div key={tenant.rank} className="flex items-center justify-between p-4 bg-linear-to-r from-gray-50 via-white to-gray-50 rounded-xl border-2 border-gray-100 hover:border-blue-200 transition-all">
                                 <div className="flex items-center space-x-4">
                                     <div className="text-4xl">{tenant.badge}</div>
                                     <div>

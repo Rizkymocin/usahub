@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import axios from '@/lib/axios'
+import { isAxiosError } from 'axios'
 
 interface Account {
     id: number
@@ -45,9 +46,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
                     isLoading: false
                 })
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch accounts',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch accounts' : 'Failed to fetch accounts',
                 isLoading: false
             })
         }

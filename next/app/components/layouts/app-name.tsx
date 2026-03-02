@@ -6,9 +6,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
-import { School } from "lucide-react"
 
 export function AppName({
   appInfo,
@@ -19,8 +17,7 @@ export function AppName({
     slogan: string
   }[]
 }) {
-  const { isMobile } = useSidebar()
-  const [appName, setAppName] = React.useState(appInfo[0])
+  const appName = appInfo[0]
   const Logo = appName.logo
 
   if (!appName) {

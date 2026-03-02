@@ -6,16 +6,6 @@ import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { useResellerStore } from "@/stores/reseller.store"
 
-// Fix for Leaflet marker icons in Next.js
-const icon = L.icon({
-    iconUrl: "/images/marker-icon.png",
-    shadowUrl: "/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-})
-
 // Default center (Indonesia)
 const CENTER_LAT = -2.5489
 const CENTER_LNG = 118.0149
@@ -40,15 +30,20 @@ export default function ResellersMap() {
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
-        setIsMounted(true)
+        const timer = setTimeout(() => {
+            setIsMounted(true)
+        }, 0)
 
         // Fix for missing marker icons
-        delete (L.Icon.Default.prototype as any)._getIconUrl
+        const iconDefault = L.Icon.Default.prototype as unknown as { _getIconUrl?: string }
+        delete iconDefault._getIconUrl
         L.Icon.Default.mergeOptions({
             iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
             iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
             shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
         })
+
+        return () => clearTimeout(timer)
     }, [])
 
     if (!isMounted) {

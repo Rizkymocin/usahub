@@ -11,42 +11,34 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        const storage = localStorage.getItem("auth-storage")
-        if (storage) {
-            try {
-                const parsed = JSON.parse(storage)
-                // Access roles array from user object
-                const userRoles = parsed.state?.user?.roles || []
+        const timer = setTimeout(() => {
+            const storage = localStorage.getItem("auth-storage")
+            if (storage) {
+                try {
+                    const parsed = JSON.parse(storage)
+                    const userRoles = parsed.state?.user?.roles || []
 
-                // Determine primary role (prioritize owner > super-admin > business-admin)
-                // Note: Response structure shows roles as array of objects or strings depending on context
-                // Based on auth.service.ts login response: data.data.user.roles is array of objects
-                // But data.data.roles is array of strings ["owner"]
+                    const roleNames = userRoles.map((r: { name: string } | string) => typeof r === 'string' ? r : r.name)
 
-                // Let's check parsed.state.user.roles usually objects if from User model
-                // Or verify if we stored simple role list
-
-                // Assuming we stored the whole user object from backend
-                // Backend response: user.roles is array of objects {id, name, ...}
-
-                const roleNames = userRoles.map((r: any) => typeof r === 'string' ? r : r.name)
-
-                if (roleNames.includes('owner')) {
-                    setRole('owner')
-                } else if (roleNames.includes('super_admin')) {
-                    setRole('super_admin')
-                } else if (roleNames.includes('business_admin')) { // Assuming this role exists
-                    setRole('business_admin')
-                } else if (roleNames.includes('kasir')) { // Assuming this role exists
-                    setRole('kasir')
-                } else {
-                    setRole('guest')
+                    if (roleNames.includes('owner')) {
+                        setRole('owner')
+                    } else if (roleNames.includes('super_admin')) {
+                        setRole('super_admin')
+                    } else if (roleNames.includes('business_admin')) {
+                        setRole('business_admin')
+                    } else if (roleNames.includes('kasir')) {
+                        setRole('kasir')
+                    } else {
+                        setRole('guest')
+                    }
+                } catch (e) {
+                    console.error("Failed to parse auth storage", e)
                 }
-            } catch (e) {
-                console.error("Failed to parse auth storage", e)
             }
-        }
-        setIsLoading(false)
+            setIsLoading(false)
+        }, 0)
+
+        return () => clearTimeout(timer)
     }, [])
 
     if (isLoading) {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
+import { isAxiosError } from "axios"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Plus, Loader2, Trash2 } from "lucide-react"
 import { useVoucherStore, VoucherProduct } from "@/stores/voucher.store"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -65,8 +66,10 @@ export default function Vouchers() {
             setSellingPrice("")
             setOwnerShare("")
             setResellerFee("")
-        } catch (error) {
-            // Error handled in store
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal membuat produk voucher" : "Gagal membuat produk voucher"
+            toast.error(msg)
+            console.error("Failed to create voucher product", error)
         } finally {
             setIsSubmitting(false)
         }
@@ -91,8 +94,9 @@ export default function Vouchers() {
             toast.success("Produk voucher berhasil dihapus")
             setIsDeleteOpen(false)
             setDeleteId(null)
-        } catch (error) {
-            // Error handled in store
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menghapus produk voucher" : "Gagal menghapus produk voucher"
+            toast.error(msg)
         } finally {
             setIsSubmitting(false)
         }

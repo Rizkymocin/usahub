@@ -1,7 +1,6 @@
 import axios from "@/lib/axios";
 import { useAuthStore } from "@/stores/auth.store";
 import { RegisterData } from "@/types/auth";
-import { redirect } from "next/navigation";
 
 export const loginRequest = async (user: string, password: string) => {
     const { data } = await axios.post('/login', { user, password })

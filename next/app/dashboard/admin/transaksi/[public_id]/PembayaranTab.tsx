@@ -36,18 +36,36 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
+interface PaymentItem {
+    balance: number;
+    description: string;
+    date: string;
+    customer?: string;
+    original_amount: number;
+    account_code: string;
+    reference_key: string;
+    finance_user?: string;
+    account_name?: string;
+}
+
+interface AccountItem {
+    code: string;
+    name: string;
+}
+
+
 export default function PembayaranTab() {
     const { public_id } = useParams()
     const businessId = Array.isArray(public_id) ? public_id[0] : public_id
 
-    const [receivables, setReceivables] = useState<any[]>([])
-    const [payables, setPayables] = useState<any[]>([])
+    const [receivables, setReceivables] = useState<PaymentItem[]>([])
+    const [payables, setPayables] = useState<PaymentItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [accounts, setAccounts] = useState<any[]>([])
+    const [accounts, setAccounts] = useState<AccountItem[]>([])
 
     // Payment Dialog State
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
-    const [selectedItem, setSelectedItem] = useState<any>(null)
+    const [selectedItem, setSelectedItem] = useState<PaymentItem | null>(null)
     const [paymentType, setPaymentType] = useState<"receivable" | "payable">("receivable")
     const [paymentAmount, setPaymentAmount] = useState("")
     const [paymentAccountCode, setPaymentAccountCode] = useState("")
@@ -68,7 +86,7 @@ export default function PembayaranTab() {
             setPayables(payRes.data.data)
 
             // Filter Kas & Bank accounts (1010, 1020)
-            const kasBankAccounts = accRes.data.data.filter((acc: any) =>
+            const kasBankAccounts = accRes.data.data.filter((acc: AccountItem) =>
                 acc.code.startsWith('1010') || acc.code.startsWith('1020')
             )
             setAccounts(kasBankAccounts)
@@ -84,12 +102,13 @@ export default function PembayaranTab() {
         if (businessId) {
             fetchData()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [businessId])
 
-    const openPaymentDialog = (item: any, type: "receivable" | "payable") => {
+    const openPaymentDialog = (item: PaymentItem, type: "receivable" | "payable") => {
         setSelectedItem(item)
         setPaymentType(type)
-        setPaymentAmount(item.balance.toString())
+        setPaymentAmount(String(item.balance))
         setPaymentDescription(`Pembayaran untuk ${item.description}`)
         // Find default account (Kas)
         const defaultAcc = accounts.find(a => a.code === '1010')
@@ -112,19 +131,20 @@ export default function PembayaranTab() {
             await axios.post(`/businesses/${businessId}/payments`, {
                 payment_date: paymentDate,
                 type: paymentType,
-                account_code: selectedItem.account_code,
+                account_code: selectedItem?.account_code,
                 payment_account_code: paymentAccountCode,
                 amount: Number(paymentAmount),
-                reference_key: selectedItem.reference_key,
+                reference_key: selectedItem?.reference_key,
                 description: paymentDescription
             })
 
             toast.success("Pembayaran berhasil dicatat")
             setIsPaymentDialogOpen(false)
             fetchData() // Refresh data
-        } catch (error: any) {
-            console.error(error)
-            toast.error(error.response?.data?.message || "Gagal memproses pembayaran")
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } };
+            console.error(err)
+            toast.error(err.response?.data?.message || "Gagal memproses pembayaran")
         } finally {
             setIsSubmitting(false)
         }

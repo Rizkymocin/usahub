@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import axios from "@/lib/axios"
+import { useEffect, useState, useCallback } from "react"
+import { isAxiosError } from "axios"
+import api from "@/lib/axios"
 import { useAuthUser } from "@/stores/auth.selectors"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -72,25 +73,25 @@ export default function UsahaPage() {
     const [editCategory, setEditCategory] = useState("isp")
     const [editAddress, setEditAddress] = useState("")
 
-    useEffect(() => {
-        fetchBusinesses()
-    }, [])
-
-    const fetchBusinesses = async () => {
+    const fetchBusinesses = useCallback(async () => {
         try {
-            const { data } = await axios.get('businesses')
+            const { data } = await api.get('businesses')
             if (data.success) {
                 setBusinesses(data.data)
                 if (data.meta) {
                     setPlanLimits(data.meta)
                 }
             }
-        } catch (error) {
-            console.error("Failed to fetch businesses", error)
+        } catch (error: unknown) {
+            console.error("Failed to fetch businesses", isAxiosError(error) ? error.response?.data?.message : error)
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        fetchBusinesses()
+    }, [fetchBusinesses])
 
     const handleAddBusiness = async () => {
         if (!newName) {
@@ -106,7 +107,7 @@ export default function UsahaPage() {
                 address: newAddress,
                 is_active: true
             }
-            const { data } = await axios.post('businesses', payload)
+            const { data } = await api.post('businesses', payload)
 
             if (data.success) {
                 toast.success("Usaha berhasil ditambahkan")
@@ -116,8 +117,8 @@ export default function UsahaPage() {
                 setNewCategory("isp")
                 fetchBusinesses()
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menambahkan usaha"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menambahkan usaha" : "Gagal menambahkan usaha"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -146,7 +147,7 @@ export default function UsahaPage() {
                 address: editAddress,
                 is_active: editingBusiness.is_active
             }
-            const { data } = await axios.put(`businesses/${editingBusiness.public_id}`, payload)
+            const { data } = await api.put(`businesses/${editingBusiness.public_id}`, payload)
 
             if (data.success) {
                 toast.success("Usaha berhasil diperbarui")
@@ -154,8 +155,8 @@ export default function UsahaPage() {
                 setEditingBusiness(null)
                 fetchBusinesses()
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal memperbarui usaha"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal memperbarui usaha" : "Gagal memperbarui usaha"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -163,7 +164,7 @@ export default function UsahaPage() {
     }
 
     // Helper to check if user has owner role
-    const isOwner = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'owner') || user?.role === 'owner';
+    const isOwner = user?.roles?.some((r: { name: string } | string) => (typeof r === 'string' ? r : r.name) === 'owner') || user?.role === 'owner';
 
     return (
         <div className="p-6 space-y-6">

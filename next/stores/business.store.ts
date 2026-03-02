@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { BusinessState } from '@/types/business';
 import { businessService } from '@/services/business.service';
+import { isAxiosError } from 'axios';
 
 export const useBusinessStore = create<BusinessState>((set, get) => ({
     currentBusiness: null,
@@ -22,9 +23,9 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
             } else {
                 set({ error: response.message, isLoading: false });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch business',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch business' : 'Failed to fetch business',
                 isLoading: false
             });
         }

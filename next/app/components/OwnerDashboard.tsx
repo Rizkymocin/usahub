@@ -15,45 +15,33 @@ import {
     ArrowDownRight
 } from "lucide-react"
 
-// Dummy data for business statistics
-const stats = [
-    {
-        title: "Total Usaha Anda",
-        value: "2",
-        change: "+12.5%",
-        trend: "up",
-        icon: Building2,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50"
-    },
-    {
-        title: "Total Pendapatan",
-        value: "Rp 45.2M",
-        change: "+23.1%",
-        trend: "up",
-        icon: DollarSign,
-        color: "text-green-600",
-        bgColor: "bg-green-50"
-    },
-    {
-        title: "Total Pengguna",
-        value: "5",
-        change: "+18.2%",
-        trend: "up",
-        icon: Users,
-        color: "text-purple-600",
-        bgColor: "bg-purple-50"
-    },
-    {
-        title: "Pertumbuhan Bulanan",
-        value: "15.8%",
-        change: "-2.4%",
-        trend: "down",
-        icon: Activity,
-        color: "text-orange-600",
-        bgColor: "bg-orange-50"
-    }
-]
+interface BusinessPerformance {
+    name: string;
+    customers: number;
+    revenue?: string;
+    revenue_formatted?: string;
+    growth: string;
+    status: string;
+    type?: string;
+}
+
+interface TopPerformer {
+    rank?: number;
+    name: string;
+    score?: number;
+    badge?: string;
+    revenue_formatted?: string;
+}
+
+interface DashboardData {
+    stats: {
+        total_businesses: number;
+        total_revenue: string;
+        total_customers: number;
+    };
+    business_performance: BusinessPerformance[];
+    top_performers: TopPerformer[];
+}
 
 const businessPerformance = [
     { name: "WiFi Corner Jakarta Pusat", customers: 1250, revenue: "Rp 12.5M", growth: "+15%", status: "active", type: "WiFi" },
@@ -80,7 +68,7 @@ const topPerformers = [
 export default function OwnerDashboard() {
     const [date, setDate] = useState<string>("")
     const [isLoading, setIsLoading] = useState(true)
-    const [dashboardData, setDashboardData] = useState<any>(null)
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 
     useEffect(() => {
         setDate(new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }))
@@ -213,7 +201,7 @@ export default function OwnerDashboard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {displayPerformance.map((business: any, index: number) => (
+                                {displayPerformance.map((business: BusinessPerformance, index: number) => (
                                     <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
                                         <td className="py-3 px-4 font-medium text-gray-900">{business.name}</td>
                                         <td className="py-3 px-4 text-gray-600">{business.customers?.toLocaleString()}</td>
@@ -244,7 +232,7 @@ export default function OwnerDashboard() {
                 <Card className="p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Top Performa Usaha</h2>
                     <div className="space-y-4">
-                        {displayPerformers.map((performer: any, idx: number) => (
+                        {displayPerformers.map((performer: TopPerformer, idx: number) => (
                             <div key={idx} className="flex items-center justify-between p-4 bg-linear-to-r from-gray-50 to-white rounded-lg border">
                                 <div className="flex items-center space-x-3">
                                     <span className="text-2xl">{idx === 0 ? "🏆" : idx === 1 ? "🥈" : "🥉"}</span>

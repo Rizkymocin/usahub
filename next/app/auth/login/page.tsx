@@ -18,8 +18,9 @@ export default function LoginPage() {
             await loginRequest(data.user, data.password)
             toast.success("Login berhasil")
             router.push("/dashboard")
-        } catch (error) {
-            toast.error("Login gagal")
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Terjadi kesalahan"
+            toast.error("Login gagal", { description: message })
         } finally {
             setIsLoading(false)
         }

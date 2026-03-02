@@ -102,8 +102,9 @@ export default function CalonPasangBaru() {
                     break;
             }
             setIsActionDialogOpen(false);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || 'Terjadi kesalahan');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            toast.error(error?.response?.data?.message || 'Terjadi kesalahan');
         } finally {
             setIsSubmitting(false);
         }
@@ -116,8 +117,9 @@ export default function CalonPasangBaru() {
             await assignTechnician(businessId, assignProspect.public_id, technicianUserId);
             toast.success(`Teknisi berhasil ditugaskan untuk ${assignProspect.name}`);
             setIsAssignDialogOpen(false);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || 'Gagal menugaskan teknisi');
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } } };
+            toast.error(error?.response?.data?.message || 'Gagal menugaskan teknisi');
         } finally {
             setIsAssigning(false);
         }

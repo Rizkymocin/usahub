@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import axios from "@/lib/axios"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Plus, Loader2, MoreHorizontal, Trash2, Power, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowLeftRight, Settings } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,7 @@ import {
     flexRender,
     SortingState,
     ColumnFiltersState,
+    Table,
 } from "@tanstack/react-table"
 import { useResellerStore, Reseller } from "@/stores/reseller.store"
 import { useOutletStore } from "@/stores/outlet.store"
@@ -40,10 +41,8 @@ export default function Resellers() {
 
     // Store Hooks
     const {
-        resellers,
         activeResellers,
         isLoading: isResellersLoading,
-        fetchResellers,
         fetchActiveResellers,
         addReseller,
         updateReseller,
@@ -100,7 +99,7 @@ export default function Resellers() {
                 setIpStart(config.reseller_ip_start || "")
                 setIpCidr(config.reseller_ip_cidr || "24")
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch configuration", error)
         }
     }
@@ -125,7 +124,7 @@ export default function Resellers() {
 
             toast.success("Konfigurasi berhasil disimpan")
             setIsConfigDialogOpen(false)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(error)
             toast.error("Gagal menyimpan konfigurasi")
         } finally {
@@ -169,7 +168,7 @@ export default function Resellers() {
             setLongitude("")
             // Refresh inactive resellers
             // fetchInactiveResellers(id)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
         } finally {
             setIsSubmitting(false)
@@ -189,7 +188,7 @@ export default function Resellers() {
             toast.success(reseller.is_active ? "Reseller dinonaktifkan" : "Reseller diaktifkan")
             // Refresh both lists
             fetchActiveResellers(businessId)
-        } catch (error: any) {
+        } catch {
             // Error handled
         }
     }
@@ -207,7 +206,7 @@ export default function Resellers() {
             if (reseller.is_active) {
                 fetchActiveResellers(businessId)
             }
-        } catch (error: any) {
+        } catch {
             // Error handled
         }
     }
@@ -234,7 +233,7 @@ export default function Resellers() {
             if (resellerToSwitch.is_active) {
                 fetchActiveResellers(businessId)
             }
-        } catch (error: any) {
+        } catch {
             // Error handled by store/toast
         } finally {
             setIsSubmitting(false)
@@ -320,6 +319,7 @@ export default function Resellers() {
                 )
             },
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [])
 
     const activeTable = useReactTable({
@@ -343,7 +343,7 @@ export default function Resellers() {
 
 
 
-    const renderTable = (table: any, columns: ColumnDef<Reseller>[], globalFilter: string, setGlobalFilter: (value: string) => void) => (
+    const renderTable = (table: Table<Reseller>, columns: ColumnDef<Reseller>[], globalFilter: string, setGlobalFilter: (value: string) => void) => (
         <>
             <div className="flex items-center py-4 gap-2">
                 <div className="relative flex-1 max-w-sm">
@@ -365,9 +365,9 @@ export default function Resellers() {
                 <div className="rounded-md border">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-muted/50 border-b">
-                            {table.getHeaderGroups().map((headerGroup: any) => (
+                            {table.getHeaderGroups().map((headerGroup) => (
                                 <tr key={headerGroup.id}>
-                                    {headerGroup.headers.map((header: any) => {
+                                    {headerGroup.headers.map((header) => {
                                         return (
                                             <th key={header.id} className="p-4 font-semibold text-muted-foreground">
                                                 {header.isPlaceholder
@@ -384,13 +384,13 @@ export default function Resellers() {
                         </thead>
                         <tbody>
                             {table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row: any) => (
+                                table.getRowModel().rows.map((row) => (
                                     <tr
                                         key={row.id}
                                         data-state={row.getIsSelected() && "selected"}
                                         className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                                     >
-                                        {row.getVisibleCells().map((cell: any) => (
+                                        {row.getVisibleCells().map((cell) => (
                                             <td key={cell.id} className="p-4">
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </td>

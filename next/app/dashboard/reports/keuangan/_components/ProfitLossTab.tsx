@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useCallback } from "react"
 import { reportService, ProfitAndLossData, ReportFilters } from "@/services/report.service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,21 +18,21 @@ export default function ProfitLossTab({ filters, trigger }: { filters: ReportFil
         documentTitle: `Laba_Rugi_${filters.business_id || 'Konsolidasi'}_${filters.start_date || 'Awal'}_SD_${filters.end_date || 'Akhir'}`,
     })
 
-    useEffect(() => {
-        fetchData()
-    }, [trigger, filters.business_id]) // Re-fetch when trigger or business changes
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
             const result = await reportService.getProfitAndLoss(filters)
             setData(result)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch P&L", error)
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [filters])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData, trigger]) // Re-fetch when trigger or fetchData (which depends on filters) changes
 
     if (isLoading) {
         return <div className="py-12 text-center text-muted-foreground animate-pulse">Memuat data Laba Rugi...</div>
@@ -111,7 +111,7 @@ export default function ProfitLossTab({ filters, trigger }: { filters: ReportFil
                                         width={80}
                                     />
                                     <Tooltip
-                                        formatter={(value: any) => ['Rp ' + Number(value).toLocaleString('id-ID'), '']}
+                                        formatter={(value: string | number | undefined) => ['Rp ' + Number(value || 0).toLocaleString('id-ID'), '']}
                                         labelFormatter={(label) => `Bulan: ${label}`}
                                     />
                                     <Legend />

@@ -54,7 +54,7 @@ export default function DamageReportDialog({
             setReason('damage');
             setNotes('');
             setFiles([]);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             // Error handling usually done in parent catch, but toast here just in case matches parent behavior
         } finally {

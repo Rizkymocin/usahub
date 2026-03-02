@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useCallback } from "react"
 import { reportService, ReportFilters } from "@/services/report.service"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -11,8 +11,30 @@ import { useReactToPrint } from "react-to-print"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
+interface Account {
+    code: string
+    name: string
+}
+
+interface LedgerLine {
+    date: string
+    event_code: string
+    description: string
+    debit: number
+    credit: number
+    balance: number
+}
+
+interface GeneralLedgerData {
+    accounts: Account[]
+    selected_account?: Account
+    opening_balance: number
+    closing_balance: number
+    lines: LedgerLine[]
+}
+
 export default function GeneralLedgerTab({ filters, trigger }: { filters: ReportFilters, trigger: number }) {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState<GeneralLedgerData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [selectedAccount, setSelectedAccount] = useState<string>("")
     const printRef = useRef<HTMLDivElement>(null)
@@ -22,28 +44,13 @@ export default function GeneralLedgerTab({ filters, trigger }: { filters: Report
         documentTitle: `Buku_Besar_${selectedAccount}_${filters.start_date || 'Awal'}_SD_${filters.end_date || 'Akhir'}`,
     })
 
-    // Kapan pun trigger/filters bisnis berubah, reset akun untuk me-load default 
-    useEffect(() => {
-        setSelectedAccount("")
-        fetchData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [trigger, filters.business_id, filters.start_date, filters.end_date])
-
-    // Fetch data ketika akun spesifik diubah secara manual
-    useEffect(() => {
-        if (selectedAccount !== "") {
-            fetchData(selectedAccount)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedAccount])
-
-    const fetchData = async (accountCode?: string) => {
+    const fetchData = useCallback(async (accountCode?: string) => {
         setIsLoading(true)
         try {
             const result = await reportService.getGeneralLedger({
                 ...filters,
                 account_code: accountCode || undefined
-            })
+            }) as GeneralLedgerData
             setData(result)
 
             // Set jika kosong di awal
@@ -55,7 +62,20 @@ export default function GeneralLedgerTab({ filters, trigger }: { filters: Report
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [filters, selectedAccount])
+
+    // Kapan pun trigger/filters bisnis berubah, reset akun untuk me-load default 
+    useEffect(() => {
+        setSelectedAccount("")
+        fetchData()
+    }, [trigger, filters.business_id, filters.start_date, filters.end_date, fetchData])
+
+    // Fetch data ketika akun spesifik diubah secara manual
+    useEffect(() => {
+        if (selectedAccount !== "") {
+            fetchData(selectedAccount)
+        }
+    }, [selectedAccount, fetchData])
 
     if (isLoading && !data) {
         return <div className="py-12 text-center text-muted-foreground animate-pulse">Memuat Buku Besar...</div>
@@ -88,7 +108,7 @@ export default function GeneralLedgerTab({ filters, trigger }: { filters: Report
                             <SelectValue placeholder="Pilih Akun..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {data.accounts.map((acc: any) => (
+                            {data.accounts.map((acc: Account) => (
                                 <SelectItem key={acc.code} value={acc.code}>
                                     {acc.code} - {acc.name}
                                 </SelectItem>
@@ -147,7 +167,7 @@ export default function GeneralLedgerTab({ filters, trigger }: { filters: Report
                                 </TableRow>
 
                                 {data.lines && data.lines.length > 0 ? (
-                                    data.lines.map((line: any, idx: number) => (
+                                    data.lines.map((line: LedgerLine, idx: number) => (
                                         <TableRow key={idx}>
                                             <TableCell>
                                                 {format(new Date(line.date), "dd MMM yyyy", { locale: id })}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { reportService, BusinessPerformanceData, ReportFilters } from "@/services/report.service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -9,21 +9,21 @@ export default function BusinessPerformanceTab({ filters, trigger }: { filters: 
     const [data, setData] = useState<BusinessPerformanceData[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    useEffect(() => {
-        fetchData()
-    }, [trigger, filters.business_id])
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
             const result = await reportService.getBusinessPerformance(filters)
             setData(result)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch Business Performance", error)
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [filters])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData, trigger])
 
     if (isLoading) {
         return <div className="py-12 text-center text-muted-foreground animate-pulse">Memuat data Performa Usaha...</div>
@@ -49,7 +49,7 @@ export default function BusinessPerformanceTab({ filters, trigger }: { filters: 
                                     tickFormatter={(value) => `Rp ${(value / 1000000).toFixed(0)}M`}
                                 />
                                 <Tooltip
-                                    formatter={(value: any) => ['Rp ' + Number(value).toLocaleString('id-ID'), '']}
+                                    formatter={(value: number | string | undefined) => ['Rp ' + Number(value || 0).toLocaleString('id-ID'), '']}
                                     labelFormatter={(label) => `Usaha: ${label}`}
                                 />
                                 <Legend />

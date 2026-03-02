@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useVoucherSaleStore, VoucherSale } from "@/stores/voucher-sale.store"
 import { useBusiness } from "@/stores/business.selectors"
 import { useBusinessActions } from "@/stores/business.selectors"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { Search, Filter, Calendar as CalendarIcon, ArrowLeft, RefreshCw, Download } from "lucide-react"
+import { Search, Filter, Calendar as CalendarIcon, ArrowLeft, RefreshCw } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -27,7 +27,7 @@ export default function Penjualan() {
     const { fetchBusiness } = useBusinessActions()
 
     // Store
-    const { sales, isLoading: isSalesLoading, fetchSales, error: salesError } = useVoucherSaleStore()
+    const { sales, isLoading: isSalesLoading, fetchSales } = useVoucherSaleStore()
 
     // Local State
     const [searchTerm, setSearchTerm] = useState("")
@@ -101,10 +101,7 @@ export default function Penjualan() {
     const [currentPage, setCurrentPage] = useState(1)
     const ITEMS_PER_PAGE = 10
 
-    // Reset page when filters change
-    useEffect(() => {
-        setCurrentPage(1)
-    }, [searchTerm, statusFilter, dateRange])
+
 
     const totalPages = Math.ceil(filteredSales.length / ITEMS_PER_PAGE)
     const paginatedSales = filteredSales.slice(
@@ -185,11 +182,17 @@ export default function Penjualan() {
                                 placeholder="Cari ID, Pelanggan, atau Produk..."
                                 className="pl-9"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value)
+                                    setCurrentPage(1)
+                                }}
                             />
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter} onValueChange={(val) => {
+                                setStatusFilter(val)
+                                setCurrentPage(1)
+                            }}>
                                 <SelectTrigger className="w-[180px]">
                                     <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                                     <SelectValue placeholder="Status" />
@@ -223,7 +226,10 @@ export default function Penjualan() {
                                     <Calendar
                                         mode="range"
                                         selected={{ from: dateRange.from, to: dateRange.to || undefined }}
-                                        onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                                        onSelect={(range) => {
+                                            setDateRange({ from: range?.from, to: range?.to })
+                                            setCurrentPage(1)
+                                        }}
                                         initialFocus
                                     />
                                 </PopoverContent>
@@ -236,6 +242,7 @@ export default function Penjualan() {
                                         setSearchTerm("")
                                         setStatusFilter("all")
                                         setDateRange({ from: undefined, to: undefined })
+                                        setCurrentPage(1)
                                     }}
                                 >
                                     Reset

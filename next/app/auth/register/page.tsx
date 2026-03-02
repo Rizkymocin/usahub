@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerRequest } from "@/services/auth.service";
 import { RegisterData } from "@/types/auth";
+import axios from "axios";
 
 export default function RegisterPage() {
 
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
 
-    const handleRegister = async (data: any) => {
+    const handleRegister = async (data: RegisterData) => {
         setIsLoading(true)
 
         if (data.password !== data.password_confirmation) {
@@ -32,7 +33,7 @@ export default function RegisterPage() {
                 category: data.category
             }
 
-            const response = await registerRequest(registerData)
+            await registerRequest(registerData)
 
             toast.success("Registrasi berhasil! Selamat datang di UsaHub")
 
@@ -40,13 +41,14 @@ export default function RegisterPage() {
                 router.push("/dashboard")
             }, 1000)
 
-        } catch (err: unknown) {
-            const error = err as any;
-            if (error.response) {
-                console.error("Registrasi gagal:", error.response.data.message)
-                toast.error(error.response.data.message || "Gagal mendaftar")
-            } else {
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error) && error.response) {
+                console.error("Registrasi gagal:", error.response.data?.message)
+                toast.error(error.response.data?.message || "Gagal mendaftar")
+            } else if (error instanceof Error) {
                 console.error(error.message)
+                toast.error("Terjadi kesalahan sistem")
+            } else {
                 toast.error("Terjadi kesalahan sistem")
             }
         } finally {

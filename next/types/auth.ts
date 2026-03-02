@@ -3,7 +3,7 @@ export interface User {
     name: string;
     email: string;
     role?: string;
-    roles?: any[];
+    roles?: { name: string }[] | string[];
     business_public_id?: string;
 }
 

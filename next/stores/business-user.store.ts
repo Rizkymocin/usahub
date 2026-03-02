@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import axios from '@/lib/axios'
+import { isAxiosError } from 'axios'
 
 export interface User {
     id: number
@@ -44,9 +45,9 @@ export const useBusinessUserStore = create<BusinessUserState>((set, get) => ({
                     isLoading: false
                 })
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch users',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch users' : 'Failed to fetch users',
                 isLoading: false
             })
         }

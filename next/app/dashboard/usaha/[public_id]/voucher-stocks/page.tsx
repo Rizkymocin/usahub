@@ -7,6 +7,7 @@ import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
 import AddStockDialog from '@/app/components/voucher/AddStockDialog';
 import DamageReportDialog from '@/app/components/voucher/DamageReportDialog';
 import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 
 export default function VoucherStocksPage() {
     const { public_id } = useParams();
@@ -54,8 +55,8 @@ export default function VoucherStocksPage() {
             await updatePrice(businessId, stockId, parseFloat(editPrice));
             toast.success('Harga berhasil diupdate');
             setEditingStock(null);
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal update harga');
+        } catch (error: unknown) {
+            toast.error(isAxiosError(error) ? error.message || 'Gagal update harga' : (error instanceof Error ? error.message : 'Gagal update harga'));
         }
     };
 
@@ -65,8 +66,8 @@ export default function VoucherStocksPage() {
         try {
             await deleteStock(businessId, stockId);
             toast.success('Stok berhasil dihapus');
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal hapus stok');
+        } catch (error: unknown) {
+            toast.error(isAxiosError(error) ? error.message || 'Gagal hapus stok' : (error instanceof Error ? error.message : 'Gagal hapus stok'));
         }
     };
 
@@ -138,7 +139,7 @@ export default function VoucherStocksPage() {
                         ) : stocks.length === 0 ? (
                             <tr>
                                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                    Belum ada stok voucher. Klik tombol "Tambah Stok Manual" untuk menambahkan.
+                                    Belum ada stok voucher. Klik tombol &quot;Tambah Stok Manual&quot; untuk menambahkan.
                                 </td>
                             </tr>
                         ) : (

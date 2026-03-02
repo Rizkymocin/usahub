@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import axios from '@/lib/axios'
+import { isAxiosError } from 'axios'
 
 export interface IspPurchaseItem {
     id: number
@@ -40,7 +41,7 @@ interface IspPurchaseState {
     error: string | null
 
     fetchPurchases: (businessPublicId: string) => Promise<void>
-    createPurchase: (businessPublicId: string, payload: any) => Promise<IspPurchase>
+    createPurchase: (businessPublicId: string, payload: Record<string, unknown>) => Promise<IspPurchase>
 }
 
 export const useIspPurchaseStore = create<IspPurchaseState>((set) => ({
@@ -58,15 +59,15 @@ export const useIspPurchaseStore = create<IspPurchaseState>((set) => ({
                     isLoading: false
                 })
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to fetch purchases',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to fetch purchases' : 'Failed to fetch purchases',
                 isLoading: false
             })
         }
     },
 
-    createPurchase: async (businessPublicId: string, payload: any) => {
+    createPurchase: async (businessPublicId: string, payload: Record<string, unknown>) => {
         set({ isLoading: true, error: null })
         try {
             const response = await axios.post(`businesses/${businessPublicId}/purchases`, payload)
@@ -78,9 +79,9 @@ export const useIspPurchaseStore = create<IspPurchaseState>((set) => ({
                 return response.data.data
             }
             throw new Error('Failed to create purchase')
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Failed to create purchase',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Failed to create purchase' : 'Failed to create purchase',
                 isLoading: false
             })
             throw error

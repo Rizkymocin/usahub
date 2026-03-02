@@ -61,7 +61,7 @@ export default function IspKasirDashboard() {
                         activeBusinessId = firstBusiness.public_id
 
                         // Also fetch/set this business in the store
-                        useBusinessStore.getState().fetchBusiness(activeBusinessId)
+                        useBusinessStore.getState().fetchBusiness(activeBusinessId as string)
                     }
                 } catch (error) {
                     console.error("Failed to fetch user businesses", error)
@@ -87,7 +87,7 @@ export default function IspKasirDashboard() {
         // For 'Target Penjualan', we can compare today's sales count vs (today's sales + current stock)
         // This gives a rough "daily sell-through rate"
         const todaySoldItemsCount = todaySales.reduce((acc, sale) => {
-            return acc + (sale.items?.reduce((iAcc: number, item: any) => iAcc + item.quantity, 0) || 0)
+            return acc + (sale.items?.reduce((iAcc: number, item: { quantity: number }) => iAcc + item.quantity, 0) || 0)
         }, 0)
 
         const totalPotential = todaySoldItemsCount + totalVouchers
@@ -112,7 +112,8 @@ export default function IspKasirDashboard() {
             const current = prev[productId] || 0
             const next = current + delta
             if (next <= 0) {
-                const { [productId]: _, ...rest } = prev
+                const rest = { ...prev }
+                delete rest[productId]
                 return rest
             }
             // Check stock limit for increment
@@ -132,7 +133,8 @@ export default function IspKasirDashboard() {
         if (isNaN(qty) || qty <= 0) {
             // Remove from cart
             setCart(prev => {
-                const { [productId]: _, ...rest } = prev
+                const rest = { ...prev }
+                delete rest[productId]
                 return rest
             })
             return
@@ -181,8 +183,9 @@ export default function IspKasirDashboard() {
             toast.success("Transaksi berhasil!")
             setCart({})
             fetchSummary(businessId as string)
-        } catch (error: any) {
-            toast.error(error?.message || "Gagal memproses transaksi")
+        } catch (error) {
+            const err = error as { message?: string }
+            toast.error(err?.message || "Gagal memproses transaksi")
         } finally {
             setIsSubmitting(false)
         }
@@ -215,7 +218,7 @@ export default function IspKasirDashboard() {
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-lg">
+                <Card className="bg-linear-to-br from-indigo-500 to-purple-600 text-white border-none shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-sm font-medium">Penjualan Hari Ini</CardTitle>
                         <TrendingUp className="h-4 w-4 text-white/70" />

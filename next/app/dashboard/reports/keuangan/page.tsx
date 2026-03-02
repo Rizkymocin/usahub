@@ -1,13 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useAuthUser } from "@/stores/auth.selectors"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import axios from "@/lib/axios"
+import api from "@/lib/axios"
+import { isAxiosError } from "axios"
 import ProfitLossTab from "./_components/ProfitLossTab"
+
+interface Business {
+    public_id: string
+    name: string
+}
 
 import { Filter } from "lucide-react"
 import BusinessPerformanceTab from "./_components/BusinessPerformanceTab"
@@ -17,7 +23,7 @@ import GeneralLedgerTab from "./_components/GeneralLedgerTab"
 
 export default function LaporanKeuanganPage() {
     const user = useAuthUser()
-    const [businesses, setBusinesses] = useState<any[]>([])
+    const [businesses, setBusinesses] = useState<Business[]>([])
 
     // Filters
     const [selectedBusiness, setSelectedBusiness] = useState<string>("all")
@@ -27,26 +33,29 @@ export default function LaporanKeuanganPage() {
     // Trigger to re-fetch inner components
     const [filterTrigger, setFilterTrigger] = useState(0)
 
-    useEffect(() => {
-        fetchBusinesses()
-    }, [])
-
-    const fetchBusinesses = async () => {
+    const fetchBusinesses = useCallback(async () => {
         try {
-            const { data } = await axios.get('businesses')
+            const { data } = await api.get('businesses')
             if (data.success) {
                 setBusinesses(data.data)
             }
-        } catch (error) {
-            console.error("Failed to fetch businesses", error)
+        } catch (error: unknown) {
+            console.error("Failed to fetch businesses", isAxiosError(error) ? error.response?.data?.message : error)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchBusinesses()
+        }, 0)
+        return () => clearTimeout(timer)
+    }, [fetchBusinesses])
 
     const handleApplyFilter = () => {
         setFilterTrigger(prev => prev + 1)
     }
 
-    const isOwner = user?.roles?.some((r: any) => (typeof r === 'string' ? r : r.name) === 'owner') || user?.role === 'owner'
+    const isOwner = user?.roles?.some((r: { name: string } | string) => (typeof r === 'string' ? r : r.name) === 'owner') || user?.role === 'owner'
 
     if (!isOwner) {
         return <div className="p-6">Akses ditolak. Fitur ini hanya untuk Owner.</div>

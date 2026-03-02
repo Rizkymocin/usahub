@@ -1,7 +1,7 @@
 "use client"
 
-import { usePathname, useRouter } from "next/navigation"
-import React, { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
+import React from "react"
 import { AppSidebar } from "./app-sidebar"
 import {
     Breadcrumb,
@@ -20,8 +20,6 @@ import {
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const pathName = usePathname();
-    const router = useRouter();
-
     const segments = pathName.split('/').filter(Boolean);
 
     return (

@@ -115,8 +115,9 @@ export default function ManualJournal() {
             setAmount("")
             setDescription("")
             setDate(format(new Date(), "yyyy-MM-dd"))
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Gagal mencatat jurnal")
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } } }
+            toast.error(err.response?.data?.message || "Gagal mencatat jurnal")
         } finally {
             setIsSubmitting(false)
         }

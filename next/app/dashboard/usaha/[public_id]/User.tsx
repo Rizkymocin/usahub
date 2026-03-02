@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
 import axios from "@/lib/axios"
+import { isAxiosError } from "axios"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -30,9 +31,6 @@ const formatRole = (role: string | undefined) => {
         default: return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 }
-
-// User interface is now imported from store or inferred
-import { User } from "@/stores/business-user.store"
 
 export default function UserPage() {
     const { public_id } = useParams()
@@ -75,7 +73,7 @@ export default function UserPage() {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
             fetchUsers(id)
         }
-    }, [public_id])
+    }, [public_id, fetchUsers])
 
     const handleAddUser = async () => {
         if (!newName || !newEmail || !newRole) {
@@ -102,8 +100,8 @@ export default function UserPage() {
                 setNewEmail("")
                 setNewRole("")
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menambahkan pengguna"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menambahkan pengguna" : "Gagal menambahkan pengguna"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)

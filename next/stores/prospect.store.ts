@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface ReadinessConfirmation {
     id: number;
@@ -69,9 +70,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat data calon pelanggan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat data calon pelanggan' : 'Gagal memuat data calon pelanggan',
                 isLoading: false,
             });
         }
@@ -83,9 +84,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
             await axios.post(`businesses/${businessId}/prospects/${publicId}/approve`, { note, commission_amount: commissionAmount, uplink_reseller_id: uplinkResellerId });
             // Refetch
             await get().fetchProspects(businessId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menyetujui',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menyetujui' : 'Gagal menyetujui',
                 isLoading: false,
             });
             throw error;
@@ -97,9 +98,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
         try {
             await axios.post(`businesses/${businessId}/prospects/${publicId}/reject`, { note });
             await get().fetchProspects(businessId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menolak',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menolak' : 'Gagal menolak',
                 isLoading: false,
             });
             throw error;
@@ -111,9 +112,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
         try {
             await axios.post(`businesses/${businessId}/prospects/${publicId}/re-approve`, { note });
             await get().fetchProspects(businessId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menyetujui ulang',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menyetujui ulang' : 'Gagal menyetujui ulang',
                 isLoading: false,
             });
             throw error;
@@ -125,9 +126,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
         try {
             await axios.post(`businesses/${businessId}/prospects/${publicId}/activate`);
             await get().fetchProspects(businessId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengaktifkan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengaktifkan' : 'Gagal mengaktifkan',
                 isLoading: false,
             });
             throw error;
@@ -141,9 +142,9 @@ export const useProspectStore = create<ProspectState>((set, get) => ({
                 technician_user_id: technicianUserId,
             });
             await get().fetchProspects(businessId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menugaskan teknisi',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menugaskan teknisi' : 'Gagal menugaskan teknisi',
                 isLoading: false,
             });
             throw error;

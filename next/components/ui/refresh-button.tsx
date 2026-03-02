@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { toast } from "sonner"
+import { isAxiosError } from "axios"
 
 interface RefreshButtonProps {
     onRefresh: () => void | Promise<void>
@@ -33,9 +34,15 @@ export function RefreshButton({
             if (showToast) {
                 toast.success(successMessage)
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (showToast) {
-                toast.error(error?.response?.data?.message || errorMessage)
+                if (isAxiosError(error)) {
+                    toast.error(error.response?.data?.message || errorMessage)
+                } else if (error instanceof Error) {
+                    toast.error(error.message || errorMessage)
+                } else {
+                    toast.error(errorMessage)
+                }
             }
         } finally {
             setIsLoading(false)

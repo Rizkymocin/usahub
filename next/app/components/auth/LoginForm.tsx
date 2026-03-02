@@ -8,7 +8,6 @@ import {
     FieldDescription,
     FieldGroup,
     FieldLabel,
-    FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
@@ -106,6 +105,7 @@ export function LoginForm({
                         </FieldGroup>
                     </form>
                     <div className="bg-muted relative hidden md:block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="https://plus.unsplash.com/premium_photo-1661740422528-611c1ae26094?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                             alt="Image"

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, CheckCircle2, LayoutDashboard, LineChart, Receipt, Store, Users, Zap } from "lucide-react"
+import { ArrowRight, CheckCircle2, LineChart, Store, Users } from "lucide-react"
 
 export default function LandingPage() {
     const router = useRouter()
@@ -13,18 +14,25 @@ export default function LandingPage() {
 
     useEffect(() => {
         // Check if user is logged in
+        let auth = false
         const storage = localStorage.getItem("auth-storage")
         if (storage) {
             try {
                 const parsed = JSON.parse(storage)
                 if (parsed.state?.token) {
-                    setIsAuthenticated(true)
+                    auth = true
                 }
             } catch (e) {
                 console.error("Failed to parse auth storage", e)
             }
         }
-        setIsLoading(false)
+
+        const timer = setTimeout(() => {
+            setIsAuthenticated(auth)
+            setIsLoading(false)
+        }, 0)
+
+        return () => clearTimeout(timer)
     }, [router])
 
     if (isLoading) {
@@ -108,10 +116,12 @@ export default function LandingPage() {
                         <div className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
                             <div className="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-md">
                                 <div className="relative block w-full bg-white rounded-lg overflow-hidden">
-                                    <img
+                                    <Image
                                         src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                                         alt="Dashboard Preview"
-                                        className="w-full"
+                                        width={2070}
+                                        height={1380}
+                                        className="w-full h-auto"
                                     />
                                 </div>
                             </div>
@@ -195,15 +205,15 @@ export default function LandingPage() {
                             <p className="mt-6 text-gray-500">Sempurna untuk bisnis kecil yang baru memulai.</p>
                             <ul role="list" className="mt-6 space-y-4 flex-1">
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 1 UMKM
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 2 User
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Analitik Dasar
                                 </li>
                             </ul>
@@ -227,19 +237,19 @@ export default function LandingPage() {
                             <p className="mt-6 text-gray-500">Untuk bisnis yang sedang berkembang dengan beberapa staf.</p>
                             <ul role="list" className="mt-6 space-y-4 flex-1">
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 3 UMKM
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 5 User
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Analitik Lanjutan
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Dukungan Prioritas
                                 </li>
                             </ul>
@@ -260,19 +270,19 @@ export default function LandingPage() {
                             <p className="mt-6 text-gray-500">Untuk bisnis yang sedang berkembang dengan beberapa staf.</p>
                             <ul role="list" className="mt-6 space-y-4 flex-1">
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 10 UMKM
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Max 20 User
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Kustomisasi Laporan
                                 </li>
                                 <li className="flex text-gray-500">
-                                    <CheckCircle2 className="flex-shrink-0 w-6 h-6 text-green-500 mr-2" />
+                                    <CheckCircle2 className="shrink-0 w-6 h-6 text-green-500 mr-2" />
                                     Dukungan Prioritas 24/7
                                 </li>
                             </ul>
@@ -293,7 +303,7 @@ export default function LandingPage() {
                         <span className="block">Siap untuk memulai?</span>
                         <span className="block text-blue-200">Daftarkan UMKM Anda sekarang.</span>
                     </h2>
-                    <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
+                    <div className="mt-8 flex lg:mt-0 lg:shrink-0">
                         <div className="inline-flex rounded-md shadow">
                             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 text-lg px-8 py-3" asChild>
                                 <Link href="/auth/register">

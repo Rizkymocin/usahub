@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Download, Filter, Loader2, Trash2 } from 'lucide-react'
+import { Filter, Loader2, Trash2 } from 'lucide-react'
 
 export default function ExpensesPage() {
     const { user } = useAuthStore()
@@ -25,6 +25,7 @@ export default function ExpensesPage() {
         if (user?.business_public_id) {
             fetchExpenses(user.business_public_id, filters)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user])
 
     const handleFilter = () => {

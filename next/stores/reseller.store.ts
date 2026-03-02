@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface Reseller {
     id?: number; // Backend hides it
@@ -34,7 +35,7 @@ interface ResellerState {
     fetchActiveResellers: (businessId: string) => Promise<void>;
     fetchInactiveResellers: (businessId: string) => Promise<void>;
     addReseller: (businessId: string, data: { outlet_public_id: string; name: string; phone: string; address: string; ip_address?: string; cidr?: number; latitude?: number; longitude?: number }) => Promise<void>;
-    updateReseller: (businessId: string, resellerCode: string, data: any) => Promise<void>;
+    updateReseller: (businessId: string, resellerCode: string, data: Record<string, unknown>) => Promise<void>;
     deleteReseller: (businessId: string, resellerCode: string) => Promise<void>;
     activateReseller: (businessId: string, resellerCode: string) => Promise<void>;
 }
@@ -63,9 +64,9 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat reseller',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat reseller' : 'Gagal memuat reseller',
                 isLoading: false
             });
         }
@@ -81,10 +82,10 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error fetching active resellers:', error);
             set({
-                error: error.response?.data?.message || 'Gagal memuat reseller aktif',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat reseller aktif' : 'Gagal memuat reseller aktif',
                 isLoading: false
             });
         }
@@ -100,10 +101,10 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error fetching inactive resellers:', error);
             set({
-                error: error.response?.data?.message || 'Gagal memuat reseller baru',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat reseller baru' : 'Gagal memuat reseller baru',
                 isLoading: false
             });
         }
@@ -122,16 +123,16 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 isLoading: false
             });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menambahkan reseller',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menambahkan reseller' : 'Gagal menambahkan reseller',
                 isLoading: false
             });
             throw error;
         }
     },
 
-    updateReseller: async (businessId: string, resellerCode: string, data: any) => {
+    updateReseller: async (businessId: string, resellerCode: string, data: Record<string, unknown>) => {
         set({ isLoading: true, error: null });
         try {
             await axios.put(`businesses/${businessId}/resellers/${resellerCode}`, data);
@@ -148,9 +149,9 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate reseller',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate reseller' : 'Gagal mengupdate reseller',
                 isLoading: false
             });
             throw error;
@@ -174,9 +175,9 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menghapus reseller',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menghapus reseller' : 'Gagal menghapus reseller',
                 isLoading: false
             });
             throw error;
@@ -200,9 +201,9 @@ export const useResellerStore = create<ResellerState>((set, get) => ({
                 currentBusinessId: businessId,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengaktifkan reseller',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengaktifkan reseller' : 'Gagal mengaktifkan reseller',
                 isLoading: false
             });
             throw error;

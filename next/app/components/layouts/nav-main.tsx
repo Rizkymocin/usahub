@@ -44,7 +44,6 @@ export function NavMain({
         {items.map((item) => {
           // Check if parent or any child is active
           const isChildActive = item.items?.some(subItem => pathname.startsWith(subItem.url))
-          const isParentActive = pathname === item.url || pathname.startsWith(item.url)
           const isOpen = item.isActive || isChildActive
 
           if (!item.items || item.items.length === 0) {

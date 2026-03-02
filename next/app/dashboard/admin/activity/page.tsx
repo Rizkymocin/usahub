@@ -26,8 +26,8 @@ interface ActivityLog {
     causer_type: string | null
     causer_id: string | null
     properties: {
-        attributes?: Record<string, any>
-        old?: Record<string, any>
+        attributes?: Record<string, unknown>
+        old?: Record<string, unknown>
         ip?: string
         user_agent?: string
     }
@@ -52,6 +52,7 @@ export default function ActivityLogPage() {
         if (user?.business_public_id) {
             fetchLogs(page)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, page])
 
     const fetchLogs = async (currentPage: number) => {
@@ -62,7 +63,7 @@ export default function ActivityLogPage() {
             })
             setLogs(data.data)
             setTotalPages(data.last_page)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch activity logs", error)
         } finally {
             setIsLoading(false)

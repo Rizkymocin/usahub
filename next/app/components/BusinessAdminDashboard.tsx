@@ -7,66 +7,19 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-    TrendingUp,
-    TrendingDown,
     Users,
     DollarSign,
     ShoppingCart,
-    Clock,
     ArrowUpRight,
     ArrowDownRight,
     UserCheck,
-    UserX,
-    Calendar,
-    BarChart3,
     Download,
     Filter,
-    RefreshCw
+    RefreshCw,
+    Clock
 } from "lucide-react"
 
-// Business overview statistics
-const businessStats = [
-    {
-        title: "Today's Revenue",
-        value: "Rp 2.4M",
-        change: "+15.3%",
-        trend: "up",
-        icon: DollarSign,
-        color: "text-green-600",
-        bgColor: "bg-green-50",
-        description: "vs yesterday"
-    },
-    {
-        title: "Active Customers",
-        value: "342",
-        change: "+8.2%",
-        trend: "up",
-        icon: Users,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50",
-        description: "currently active"
-    },
-    {
-        title: "Transactions",
-        value: "156",
-        change: "+12.5%",
-        trend: "up",
-        icon: ShoppingCart,
-        color: "text-purple-600",
-        bgColor: "bg-purple-50",
-        description: "completed today"
-    },
-    {
-        title: "Staff On Duty",
-        value: "12/15",
-        change: "80%",
-        trend: "up",
-        icon: UserCheck,
-        color: "text-orange-600",
-        bgColor: "bg-orange-50",
-        description: "attendance rate"
-    }
-]
+
 
 // Staff performance data
 const staffPerformance = [
@@ -105,10 +58,34 @@ const weeklyRevenue = [
     { day: "Sun", revenue: 2.4, target: 2.5 },
 ]
 
+interface Transaction {
+    id: string;
+    customer: string;
+    amount: string;
+    time: string;
+    status: string;
+    method: string;
+}
+
+interface Business {
+    public_id: string;
+    name: string;
+    [key: string]: string | number;
+}
+
+interface DashboardData {
+    stats: {
+        today_revenue: string;
+        active_customers: number;
+        transactions_count: number;
+    };
+    recent_transactions: Transaction[];
+}
+
 export default function BusinessAdminDashboard() {
-    const [businesses, setBusinesses] = useState<any[]>([]);
-    const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
-    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [, setBusinesses] = useState<Business[]>([]);
+    const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -369,7 +346,7 @@ export default function BusinessAdminDashboard() {
                 <Card className="p-6 bg-white">
                     <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Transactions</h2>
                     <div className="space-y-3">
-                        {displayTransactions.map((transaction: any, index: number) => (
+                        {displayTransactions.map((transaction: Transaction, index: number) => (
                             <div key={index} className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-gray-900 text-sm">{transaction.id}</p>

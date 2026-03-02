@@ -4,11 +4,10 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useMaintenanceStore, type IspMaintenanceIssue } from '@/stores/maintenance.store';
 import { useResellerStore } from '@/stores/reseller.store';
-import { Loader2, Plus, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, Plus, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -106,8 +105,9 @@ export default function MaintenanceTab() {
                 priority: 'medium',
                 description: ''
             });
-        } catch (err: any) {
-            toast.error(err.message || 'Gagal membuat laporan');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            toast.error(error.message || 'Gagal membuat laporan');
         } finally {
             setIsSubmitting(false);
         }
@@ -127,8 +127,9 @@ export default function MaintenanceTab() {
             toast.success('Alat & Bahan berhasil ditambahkan');
             setIsAddItemDialogOpen(false);
             setItemForm({ name: '', unit: 'pcs', stock: '0', price: '0' });
-        } catch (err: any) {
-            toast.error(err.message || 'Gagal menyimpan');
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            toast.error(error.message || 'Gagal menyimpan');
         } finally {
             setIsSubmitting(false);
         }
@@ -416,7 +417,7 @@ export default function MaintenanceTab() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {items && items.length > 0 ? items.map((item: any) => (
+                                {items && items.length > 0 ? items.map((item: { id: React.Key | null | undefined; name: string; stock: number; unit: string; price: number | bigint }) => (
                                     <tr key={item.id} className="bg-white border-b">
                                         <td className="px-6 py-4 font-medium text-gray-900">{item.name}</td>
                                         <td className="px-6 py-4">
@@ -537,7 +538,8 @@ export default function MaintenanceTab() {
                                                         <Label className="text-xs text-muted-foreground mb-1 block">Dokumentasi</Label>
                                                         <div className="flex gap-2 overflow-x-auto pb-2">
                                                             {log.photos.map((photo, idx) => (
-                                                                <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-md overflow-hidden border">
+                                                                <div key={idx} className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden border">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                     <img
                                                                         src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/storage/${photo}`}
                                                                         alt="Dokumentasi"

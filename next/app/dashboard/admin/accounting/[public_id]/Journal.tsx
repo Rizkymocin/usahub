@@ -37,7 +37,7 @@ interface JournalEntry {
     source_type: string
     source_id: number
     description: string
-    context_json: any
+    context_json: Record<string, unknown>
     created_at: string
     lines: JournalLine[]
     total_debit: number
@@ -55,6 +55,7 @@ export default function Journal() {
         if (public_id) {
             fetchJournalEntries()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [public_id])
 
     const fetchJournalEntries = async () => {
@@ -64,7 +65,7 @@ export default function Journal() {
             if (data.success) {
                 setEntries(data.data)
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch journal entries:", error)
         } finally {
             setIsLoading(false)

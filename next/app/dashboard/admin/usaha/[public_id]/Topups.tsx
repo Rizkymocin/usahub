@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { isAxiosError } from "axios"
 import { useParams } from "next/navigation"
 import { useTopupStore, TopupRequest } from "@/stores/topup.store"
 import { Button } from "@/components/ui/button"
@@ -13,16 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
-    DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -89,8 +81,9 @@ export default function Topups() {
             toast.success("Topup berhasil disetujui")
             setIsApproveOpen(false)
             resetForm()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Gagal menyetujui topup")
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menyetujui topup" : "Gagal menyetujui topup"
+            toast.error(msg)
         } finally {
             setIsSubmitting(false)
         }
@@ -106,8 +99,9 @@ export default function Topups() {
             toast.success("Topup berhasil ditolak")
             setIsRejectOpen(false)
             resetForm()
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Gagal menolak topup")
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menolak topup" : "Gagal menolak topup"
+            toast.error(msg)
         } finally {
             setIsSubmitting(false)
         }
@@ -195,7 +189,7 @@ export default function Topups() {
         },
     ], [])
 
-    const table = useReactTable({
+    const tableOptions = useMemo(() => ({
         data: requests,
         columns,
         onSortingChange: setSorting,
@@ -212,7 +206,9 @@ export default function Topups() {
             pagination,
         },
         onPaginationChange: setPagination,
-    })
+    }), [requests, columns, sorting, columnFilters, globalFilter, pagination])
+
+    const table = useReactTable(tableOptions)
 
     return (
         <Card>

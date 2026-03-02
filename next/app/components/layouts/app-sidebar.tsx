@@ -2,20 +2,11 @@
 
 import * as React from "react"
 import {
-  BookOpen,
-  Settings,
-  Users,
-  ShieldAlert,
-  Wallet,
-  Wrench,
   FileText,
   Home,
   Store,
   MonitorCog,
   Database,
-  Bot,
-  BriefcaseBusiness,
-  CheckSquare
 } from "lucide-react"
 
 import { NavMain } from "./nav-main";
@@ -30,6 +21,89 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuthUser } from "@/stores/auth.selectors";
 
+const appInfoData = [
+  {
+    name: "UsaHub",
+    logo: Store,
+    slogan: "Kontrol Penuh Bisnis Anda",
+  },
+];
+
+const navMainData = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: Home,
+  },
+  // Super Admin Menu
+  {
+    title: "Platform Management",
+    url: "#",
+    icon: MonitorCog,
+    roles: ["super-admin"],
+    items: [
+      {
+        title: "Tenants",
+        url: "/dashboard/tenants",
+      },
+      {
+        title: "Plans",
+        url: "/dashboard/plans",
+      },
+    ]
+  },
+  // Owner & Admin Menu - Master Data
+  {
+    title: "Master Data",
+    url: "#",
+    icon: Database,
+    roles: ["owner"],
+    items: [
+      {
+        title: "Usaha",
+        url: "/dashboard/usaha",
+      },
+    ],
+  },
+  {
+    title: "Administrasi Usaha",
+    url: "#",
+    icon: Database,
+    roles: ["business_admin"],
+    items: [
+      {
+        title: "Usaha",
+        url: "/dashboard/admin/usaha",
+      },
+      {
+        title: "Transaksi",
+        url: "/dashboard/admin/transaksi",
+      },
+      {
+        title: "Aktivitas",
+        url: "/dashboard/admin/activity",
+      },
+      {
+        title: "Akuntansi",
+        url: "/dashboard/admin/accounting",
+      },
+    ],
+  },
+  // Reports
+  {
+    title: "Laporan",
+    url: "#",
+    icon: FileText,
+    roles: ["owner", "business_admin", "super-admin"],
+    items: [
+      {
+        title: "Ringkasan Eksekutif",
+        url: "/dashboard/reports/keuangan",
+      },
+    ],
+  },
+];
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthUser()
 
@@ -37,91 +111,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     user: {
       name: user?.name ?? "",
       email: user?.email ?? "",
-    },
-    appInfo: [
-      {
-        name: "UsaHub",
-        logo: Store,
-        slogan: "Kontrol Penuh Bisnis Anda",
-      },
-    ],
-    navMain: [
-      {
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: Home,
-      },
-      // Super Admin Menu
-      {
-        title: "Platform Management",
-        url: "#",
-        icon: MonitorCog,
-        roles: ["super-admin"],
-        items: [
-          {
-            title: "Tenants",
-            url: "/dashboard/tenants",
-          },
-          {
-            title: "Plans",
-            url: "/dashboard/plans",
-          },
-        ]
-      },
-      // Owner & Admin Menu - Master Data
-      {
-        title: "Master Data",
-        url: "#",
-        icon: Database,
-        roles: ["owner"],
-        items: [
-          {
-            title: "Usaha",
-            url: "/dashboard/usaha",
-          },
-        ],
-      },
-      {
-        title: "Administrasi Usaha",
-        url: "#",
-        icon: Database,
-        roles: ["business_admin"],
-        items: [
-          {
-            title: "Usaha",
-            url: "/dashboard/admin/usaha",
-          },
-          {
-            title: "Transaksi",
-            url: "/dashboard/admin/transaksi",
-          },
-          {
-            title: "Aktivitas",
-            url: "/dashboard/admin/activity",
-          },
-          {
-            title: "Akuntansi",
-            url: "/dashboard/admin/accounting",
-          },
-        ],
-      },
-      // Reports
-      {
-        title: "Laporan",
-        url: "#",
-        icon: FileText,
-        roles: ["owner", "business_admin", "super-admin"],
-        items: [
-          {
-            title: "Ringkasan Eksekutif",
-            url: "/dashboard/reports/keuangan",
-          },
-        ],
-      },
-    ],
+    }
   }
 
-  const [navMain, setNavMain] = React.useState<typeof data.navMain>([])
+  const [navMain, setNavMain] = React.useState<typeof navMainData>([])
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -137,13 +130,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         // Access roles array from user object
         const roles = parsed.state?.user?.roles || []
         // Map to strings if they are objects
-        userRoles = roles.map((r: any) => typeof r === 'string' ? r : r.name)
+        userRoles = roles.map((r: { name: string } | string) => typeof r === 'string' ? r : r.name)
       } catch (e) {
         console.error("Failed to parse auth storage", e)
       }
     }
 
-    const filteredNav = data.navMain.filter((item) => {
+    const filteredNav = navMainData.filter((item) => {
       const itemWithRoles = item as { roles?: string[] };
       // If no roles defined, accessible by everyone
       if (!itemWithRoles.roles) return true;
@@ -161,7 +154,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <AppName appInfo={data.appInfo} />
+        <AppName appInfo={appInfoData} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />

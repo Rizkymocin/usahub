@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 
 export interface IspMaintenanceIssue {
     id: number;
@@ -46,6 +47,14 @@ export interface MaintenanceLog {
     items?: MaintenanceLogItem[];
 }
 
+export interface MaintenanceItem {
+    id: number;
+    name: string;
+    unit: string;
+    stock: number;
+    price: number;
+}
+
 export interface MaintenanceLogItem {
     id: number;
     name: string;
@@ -74,7 +83,7 @@ interface UpdateIssueData {
 
 interface MaintenanceState {
     issues: IspMaintenanceIssue[];
-    items: any[];
+    items: MaintenanceItem[];
     isLoading: boolean;
     error: string | null;
 
@@ -83,7 +92,7 @@ interface MaintenanceState {
     updateIssue: (businessId: string, issuePublicId: string, data: UpdateIssueData) => Promise<void>;
 
     fetchItems: (businessId: string) => Promise<void>;
-    createItem: (businessId: string, data: any) => Promise<void>;
+    createItem: (businessId: string, data: Record<string, unknown>) => Promise<void>;
 }
 
 export const useMaintenanceStore = create<MaintenanceState>((set) => ({
@@ -99,9 +108,9 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
                 issues: res.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat data gangguan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat data gangguan' : 'Gagal memuat data gangguan',
                 isLoading: false
             });
         }
@@ -118,9 +127,9 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
                 issues: res.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal membuat laporan gangguan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal membuat laporan gangguan' : 'Gagal membuat laporan gangguan',
                 isLoading: false
             });
             throw error;
@@ -138,9 +147,9 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
                 issues: res.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate gangguan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate gangguan' : 'Gagal mengupdate gangguan',
                 isLoading: false
             });
             throw error;
@@ -154,12 +163,12 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
         try {
             const res = await axios.get(`businesses/${businessId}/maintenance-items`);
             set({ items: res.data, isLoading: false });
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || 'Gagal memuat alat & bahan', isLoading: false });
+        } catch (error: unknown) {
+            set({ error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat alat & bahan' : 'Gagal memuat alat & bahan', isLoading: false });
         }
     },
 
-    createItem: async (businessId: string, data: any) => {
+    createItem: async (businessId: string, data: Record<string, unknown>) => {
         set({ isLoading: true, error: null });
         try {
             await axios.post(`businesses/${businessId}/maintenance-items`, data);
@@ -167,8 +176,8 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
             // Refetch
             const res = await axios.get(`businesses/${businessId}/maintenance-items`);
             set({ items: res.data, isLoading: false });
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || 'Gagal menyimpan alat/bahan', isLoading: false });
+        } catch (error: unknown) {
+            set({ error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menyimpan alat/bahan' : 'Gagal menyimpan alat/bahan', isLoading: false });
             throw error;
         }
     }

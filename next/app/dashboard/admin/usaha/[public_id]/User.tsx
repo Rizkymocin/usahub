@@ -2,13 +2,13 @@
 
 import { useParams } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
-import axios from "@/lib/axios"
+import { isAxiosError } from "axios"
+import api from "@/lib/axios"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Plus, Loader2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useBusiness } from "@/stores/business.selectors"
@@ -16,7 +16,7 @@ import { useBusinessUsers, useIsBusinessUserLoading, useBusinessUserActions } fr
 import { Badge } from "@/components/ui/badge"
 
 // Helper to format role text
-const formatRole = (role: string | undefined | any) => {
+const formatRole = (role: string | undefined) => {
     if (!role) return "Tidak Ada Peran";
     if (typeof role !== 'string') return JSON.stringify(role); // Debugging fallback or safe return
 
@@ -37,7 +37,6 @@ const formatRole = (role: string | undefined | any) => {
 }
 
 // User interface is now imported from store or inferred
-import { User } from "@/stores/business-user.store"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function UserPage() {
@@ -85,7 +84,7 @@ export default function UserPage() {
             const id = Array.isArray(public_id) ? public_id[0] : public_id
             fetchUsers(id)
         }
-    }, [public_id])
+    }, [public_id, fetchUsers])
 
     const handleAddUser = async () => {
         if (!newName || !newEmail || newRoles.length === 0) {
@@ -100,7 +99,7 @@ export default function UserPage() {
                 email: newEmail,
                 role: newRoles // Send array
             }
-            const { data } = await axios.post(`businesses/${public_id}/users`, payload)
+            const { data } = await api.post(`businesses/${public_id}/users`, payload)
 
             if (data.success) {
                 toast.success("Pengguna berhasil ditambahkan")
@@ -112,8 +111,8 @@ export default function UserPage() {
                 setNewEmail("")
                 setNewRoles([])
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menambahkan pengguna"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menambahkan pengguna" : "Gagal menambahkan pengguna"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)

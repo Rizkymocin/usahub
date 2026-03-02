@@ -6,6 +6,7 @@ import { useVoucherStockStore, IspVoucherStock } from '@/stores/voucher-stock.st
 import { useVoucherStore } from '@/stores/voucher.store';
 import { Loader2, Plus, Edit2, Trash2, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -123,8 +124,9 @@ export default function VoucherStockTab() {
             });
             toast.success('Stok berhasil ditambahkan');
             setIsAddDialogOpen(false);
-        } catch (err: any) {
-            toast.error(err.message || 'Gagal menambahkan stok');
+        } catch (err: unknown) {
+            const msg = isAxiosError(err) ? err.response?.data?.message || 'Gagal menambahkan stok' : 'Gagal menambahkan stok';
+            toast.error(msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -140,8 +142,9 @@ export default function VoucherStockTab() {
             await updatePrice(businessId, stockId, parseFloat(editPrice));
             toast.success('Harga berhasil diupdate');
             setEditingStock(null);
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal update harga');
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || 'Gagal update harga' : 'Gagal update harga';
+            toast.error(msg);
         }
     };
 
@@ -151,8 +154,9 @@ export default function VoucherStockTab() {
         try {
             await deleteStock(businessId, stockId);
             toast.success('Stok berhasil dihapus');
-        } catch (error: any) {
-            toast.error(error.message || 'Gagal hapus stok');
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || 'Gagal hapus stok' : 'Gagal hapus stok';
+            toast.error(msg);
         }
     };
 
@@ -333,7 +337,7 @@ export default function VoucherStockTab() {
                                 ) : stocks.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                            Belum ada stok voucher. Klik tombol "Tambah Stok" untuk menambahkan.
+                                            Belum ada stok voucher. Klik tombol &quot;Tambah Stok&quot; untuk menambahkan.
                                         </td>
                                     </tr>
                                 ) : (

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axios from '@/lib/axios';
+import { isAxiosError } from 'axios';
 import { VoucherProduct } from './voucher.store';
 import { User } from '@/types/auth';
 
@@ -80,9 +81,9 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
                 stocks: res.data.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal memuat stok voucher',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal memuat stok voucher' : 'Gagal memuat stok voucher',
                 isLoading: false
             });
         }
@@ -92,7 +93,7 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
         try {
             const res = await axios.get(`businesses/${businessId}/voucher-stocks/summary`);
             set({ summary: res.data.data });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to fetch stock summary:', error);
         }
     },
@@ -101,7 +102,7 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
         try {
             const res = await axios.get(`businesses/${businessId}/voucher-stock-adjustments`);
             set({ adjustments: res.data.data });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to fetch adjustments:', error);
         }
     },
@@ -122,9 +123,9 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
                 summary: summaryRes.data.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menambahkan stok',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menambahkan stok' : 'Gagal menambahkan stok',
                 isLoading: false
             });
             throw error;
@@ -144,9 +145,9 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
                 stocks: res.data.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal mengupdate harga',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal mengupdate harga' : 'Gagal mengupdate harga',
                 isLoading: false
             });
             throw error;
@@ -169,9 +170,9 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
                 summary: summaryRes.data.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal menghapus stok',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal menghapus stok' : 'Gagal menghapus stok',
                 isLoading: false
             });
             throw error;
@@ -208,9 +209,9 @@ export const useVoucherStockStore = create<VoucherStockState>((set) => ({
                 summary: summaryRes.data.data,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || 'Gagal melaporkan kerusakan',
+                error: isAxiosError(error) ? error.response?.data?.message || 'Gagal melaporkan kerusakan' : 'Gagal melaporkan kerusakan',
                 isLoading: false
             });
             throw error;

@@ -1,12 +1,13 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState, useMemo } from "react"
-import { useVoucherSaleStore, VoucherSale, VoucherSaleItem } from "@/stores/voucher-sale.store"
-import { useBusiness } from "@/stores/business.selectors"
+import { useEffect, useState, useMemo, useCallback } from "react"
+import { useVoucherSaleStore, VoucherSale } from "@/stores/voucher-sale.store"
+import { isAxiosError } from "axios"
+import api from "@/lib/axios"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Loader2, Eye, Banknote, Truck, Package } from "lucide-react"
+import { Plus, Loader2, Eye, Banknote, Truck, Package } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,7 +19,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import axios from "@/lib/axios"
 
 // Components needed for Create Sale Form
 interface Outlet { id: number, name: string }
@@ -28,10 +28,9 @@ interface VoucherProduct { id: number, name: string, price: number, stock: numbe
 export default function VoucherSales() {
     const { public_id } = useParams()
     const finalPublicId = Array.isArray(public_id) ? public_id[0] : public_id
-    const business = useBusiness()
 
     // Store
-    const { sales, pendingDeliveries, isLoading, fetchSales, createSale, addPayment, fetchPendingDeliveries, markAsDelivered } = useVoucherSaleStore()
+    const { sales, isLoading, fetchSales, createSale, addPayment, fetchPendingDeliveries, markAsDelivered } = useVoucherSaleStore()
 
     // Local State for Create Dialog
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -63,21 +62,12 @@ export default function VoucherSales() {
     // Filter
     const [statusFilter, setStatusFilter] = useState<string>("all")
 
-    // Fetch initial data
-    useEffect(() => {
-        if (finalPublicId) {
-            fetchSales(finalPublicId)
-            fetchPendingDeliveries(finalPublicId)
-            fetchDropdownData()
-        }
-    }, [finalPublicId])
-
-    const fetchDropdownData = async () => {
+    const fetchDropdownData = useCallback(async () => {
         try {
             const [outletsRes, resellersRes, productsRes] = await Promise.all([
-                axios.get(`businesses/${finalPublicId}/outlets`),
-                axios.get(`businesses/${finalPublicId}/resellers`),
-                axios.get(`businesses/${finalPublicId}/vouchers`)
+                api.get(`businesses/${finalPublicId}/outlets`),
+                api.get(`businesses/${finalPublicId}/resellers`),
+                api.get(`businesses/${finalPublicId}/vouchers`)
             ])
 
             if (outletsRes.data.success) setOutlets(outletsRes.data.data)
@@ -86,7 +76,16 @@ export default function VoucherSales() {
         } catch (error) {
             console.error("Failed to fetch dropdown data", error)
         }
-    }
+    }, [finalPublicId])
+
+    // Fetch initial data
+    useEffect(() => {
+        if (finalPublicId) {
+            fetchSales(finalPublicId)
+            fetchPendingDeliveries(finalPublicId)
+            fetchDropdownData()
+        }
+    }, [finalPublicId, fetchSales, fetchPendingDeliveries, fetchDropdownData])
 
     // Calculations for Create Form
     const totalAmount = useMemo(() => {
@@ -147,8 +146,8 @@ export default function VoucherSales() {
             setIsCreateOpen(false)
             resetForm()
             if (isPrepaid && finalPublicId) fetchPendingDeliveries(finalPublicId)
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal membuat penjualan"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal membuat penjualan" : "Gagal membuat penjualan"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -177,8 +176,8 @@ export default function VoucherSales() {
             if (updated) setSelectedSale(updated)
             else fetchSales(finalPublicId)
 
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menambah pembayaran"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menambah pembayaran" : "Gagal menambah pembayaran"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -213,8 +212,8 @@ export default function VoucherSales() {
             setIsDeliveryOpen(false)
             setDeliverySale(null)
             fetchSales(finalPublicId)
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menandai pengiriman"
+        } catch (error: unknown) {
+            const msg = isAxiosError(error) ? error.response?.data?.message || "Gagal menandai pengiriman" : "Gagal menandai pengiriman"
             toast.error(msg)
         } finally {
             setIsSubmitting(false)
@@ -294,7 +293,7 @@ export default function VoucherSales() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Tujuan Penjualan</Label>
-                                        <Select value={channelType} onValueChange={(v: any) => setChannelType(v)}>
+                                        <Select value={channelType} onValueChange={(v: "outlet" | "reseller") => setChannelType(v)}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -396,7 +395,7 @@ export default function VoucherSales() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Metode Pembayaran</Label>
-                                        <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
+                                        <Select value={paymentMethod} onValueChange={(v: "cash" | "partial" | "credit") => setPaymentMethod(v)}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>

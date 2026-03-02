@@ -1,29 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+
+interface ArApData {
+    total_receivables: number
+    total_payables: number
+}
 import { reportService, ReportFilters } from "@/services/report.service"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Users, Building2, AlertTriangle } from "lucide-react"
 
 export default function ArApTab({ filters, trigger }: { filters: ReportFilters, trigger: number }) {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState<ArApData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    useEffect(() => {
-        fetchData()
-    }, [trigger, filters.business_id])
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
             const result = await reportService.getArAp(filters)
             setData(result)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch AR/AP", error)
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [filters])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData, trigger])
 
     if (isLoading) {
         return <div className="py-12 text-center text-muted-foreground animate-pulse">Memuat data Piutang & Hutang...</div>
